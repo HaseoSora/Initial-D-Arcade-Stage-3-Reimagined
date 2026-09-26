@@ -27,6 +27,7 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
     uint SceneFlags => Idas3ReplayViewer.Instance != null ? Idas3ReplayViewer.Instance.Status.flags : host.Status.flags;
     public string LoadedVariant => variant;
     public int PairedTreeTriangles {get;private set;}
+    public int PairedRoadsideTriangles {get;private set;}
     public string LoadedCourse {get;private set;}
     public static string CourseName(uint flags)=>(flags&524288u)!=0?"SADAMINE":"HAKONE";
     public static string Variant(uint flags) => ((flags&65536u)!=0?"night":"day")+((flags&131072u)!=0?"_wet":"_dry");
@@ -68,7 +69,7 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
         if(sourceMeshes!=null)foreach(var mesh in sourceMeshes)Destroy(mesh);
         if(materials!=null)foreach(var material in materials)Destroy(material);
         foreach(var texture in textures.Values)Destroy(texture);
-        PairedTreeTriangles=0;textures.Clear();scenery.Clear();skies.Clear();directionalScenery.Clear();sourceMeshes=null;materials=null;
+        PairedTreeTriangles=PairedRoadsideTriangles=0;textures.Clear();scenery.Clear();skies.Clear();directionalScenery.Clear();sourceMeshes=null;materials=null;
     }
     void OnDestroy(){ClearScene();}
     static void Magic(BinaryReader r,string expected) {
@@ -84,24 +85,30 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
     }
     Texture2D Texture(string name) {
         if(textures.TryGetValue(name,out var cached)) return cached;
-        byte[] bytes=File.ReadAllBytes(Path.Combine(root,Path.GetFileName(name)));
+        var t=DecodeTexture(File.ReadAllBytes(Path.Combine(root,Path.GetFileName(name))),name);
+        textures.Add(name,t); return t;
+    }
+    internal static Texture2D DecodeTexture(byte[] bytes,string name) {
         if(bytes.Length<128 || System.Text.Encoding.ASCII.GetString(bytes,0,4)!="DDS ") throw new InvalidDataException(name);
         int height=BitConverter.ToInt32(bytes,12),width=BitConverter.ToInt32(bytes,16);
         string fourcc=System.Text.Encoding.ASCII.GetString(bytes,84,4);
         bool alphaOnly=BitConverter.ToUInt32(bytes,80)==2&&BitConverter.ToInt32(bytes,88)==8&&BitConverter.ToUInt32(bytes,104)==255;
         if(fourcc!="DXT1" && fourcc!="DXT5"&&!alphaOnly) throw new InvalidDataException("Unsupported DDS: "+name+" / "+fourcc);
-        // Preserve source mipmaps. A8 shadow masks carry opacity only; expand
-        // to black RGBA so both projected and baked shadows share the shader.
+        // Preserve source mipmaps and mask values. Type-6 shadows store light
+        // visibility in alpha (white = lit), interpreted by the material shader.
+        // A8 needs black RGB, just like the source DXT5 shadow atlases.
         int mipCount=Math.Max(1,BitConverter.ToInt32(bytes,28));
         var t=new Texture2D(width,height,alphaOnly?TextureFormat.RGBA32:fourcc=="DXT1"?TextureFormat.DXT1:TextureFormat.DXT5,mipCount,false);
         byte[] payload=new byte[(bytes.Length-128)*(alphaOnly?4:1)];
         if(alphaOnly){for(int i=128;i<bytes.Length;i++)payload[(i-128)*4+3]=bytes[i];}
         else Buffer.BlockCopy(bytes,128,payload,0,payload.Length);
         t.LoadRawTextureData(payload); t.Apply(false,true); t.name=name; t.anisoLevel=8; t.filterMode=FilterMode.Trilinear;
-        textures.Add(name,t); return t;
+        return t;
     }
     void LoadScene() {
         var shader=Resources.Load<Shader>("Idas3Scene"); if(shader==null || !shader.isSupported) throw new InvalidOperationException("Shared scene shader missing or unsupported");
+        bool roadsideBaseline=Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-roadside-foliage-baseline")>=0&&
+            Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-sadamine-boundary-check")>=0;
         materials=new Material[data.materials.Length];
         for(int i=0;i<materials.Length;i++) {
             var s=data.materials[i]; var m=new Material(shader){name=s.name}; materials[i]=m;
@@ -118,8 +125,9 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
             m.SetFloat("_ImportedSky",s.sky?1:0);
             foreach(var t in s.textures) {
                 if(t.type==1 || s.textures.Length==1) m.mainTexture=Texture(t.file);
-                else if(t.type==6) { m.SetTexture("_ImportedShadowTex",Texture(t.file)); m.SetFloat("_ImportedHasShadow",1); }
+                else if(t.type==6) { m.SetTexture("_ImportedShadowTex",Texture(t.file)); m.SetFloat("_ImportedHasShadow",1); m.SetFloat("_ImportedShadowUv",t.uv); }
             }
+            m.SetFloat("_ImportedShadowOnly",s.textures.Length==1&&s.textures[0].type==6?1:0);
             if(s.shadow||(s.textures.Length==1&&s.textures[0].type==6)) { m.SetFloat("_SrcBlend",(float)BlendMode.SrcAlpha); m.SetFloat("_DstBlend",(float)BlendMode.OneMinusSrcAlpha); m.SetFloat("_ZWrite",0); m.renderQueue=950; }
             if(s.sky) { m.SetFloat("_ZWrite",0); m.renderQueue=800; }
         }
@@ -141,9 +149,10 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
                 // logo triangles for readable lettering on both panel faces.
                 if(IsSponsorMaterial(LoadedCourse,data.materials[mat].name))
                     treeFaces=SponsorFaceTags(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices,LoadedCourse=="SADAMINE"&&Path.GetFileName(root)=="night_wet"?.25f:0,LoadedCourse=="HAKONE");
-                if(data.materials[mat].kind=="tree"){
+                if(UsesPairedFoliageFaces(LoadedCourse,data.materials[mat])&&(!roadsideBaseline||data.materials[mat].kind=="tree")){
                     treeFaces=PrepareTreeFaces(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices,out int paired);
-                    PairedTreeTriangles+=paired;
+                    if(data.materials[mat].kind=="tree")PairedTreeTriangles+=paired;
+                    else PairedRoadsideTriangles+=paired;
                 }
                 var mesh=new Mesh{name="Hakone original shape "+shape,indexFormat=IndexFormat.UInt32};
                 mesh.vertices=vertices; mesh.normals=normals; mesh.uv=uv; mesh.uv2=uv2; mesh.colors32=colors; if(treeFaces!=null)mesh.uv3=treeFaces; mesh.triangles=indices; mesh.RecalculateBounds(); mesh.UploadMeshData(true);
@@ -176,6 +185,10 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
         Debug.Log("HAKONE scenery placements: "+scenery.Count);
     }
     internal static int SceneryDirection(string course,string material){
+        if(course=="SADAMINE"){
+            if(material=="downhill_Cmn_Fence_Mat2"||material=="downhill_gate_checkpoint2"||material=="downhill_gate_lamplight2")return -1;
+            if(material=="hillclimb_Cmn_Fence_Mat3"||material=="hillclimb_gate_checkpoint1"||material=="hillclimb_gate_lamplight1")return 1;
+        }
         if(course!="HAKONE")return 0;
         if(material=="downhill_O_barricade_panel_mat2"||material=="downhill_O_barricade_panel")return -1;
         if(material=="hillclimb_O_barricade_panel_mat1"||material=="hillclimb_O_barricade_panel")return 1;
@@ -235,6 +248,9 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
         if(ComparePosition(a,b)>0){var t=a;a=b;b=t;swaps++;}
         side=1<<(swaps&1);return (a,b,c);
     }
+    internal static bool UsesPairedFoliageFaces(string course,Surface surface)=>surface.kind=="tree"||
+        course=="SADAMINE"&&surface.cutoff>0&&(surface.name.StartsWith("bush_",StringComparison.Ordinal)||
+        surface.name.StartsWith("forest_",StringComparison.Ordinal)||surface.name=="sakura_main"||surface.name=="corner_grass_b");
     internal static Vector2[] PrepareTreeFaces(ref Vector3[] vertices,ref Vector3[] normals,ref Vector2[] uv,ref Vector2[] uv2,ref Color32[] colors,ref int[] indices,out int paired){
         var keys=new (Vector3,Vector3,Vector3)[indices.Length/3];
         var sides=new Dictionary<(Vector3,Vector3,Vector3),int>();
@@ -242,7 +258,8 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
             keys[i]=FaceKey(vertices[indices[3*i]],vertices[indices[3*i+1]],vertices[indices[3*i+2]],out int side);
             sides.TryGetValue(keys[i],out int mask);sides[keys[i]]=mask|side;
         }
-        paired=0;foreach(var key in keys)if(sides[key]==3)paired++;
+        var covered=OverlappingTreeFaces(vertices,indices);
+        paired=0;for(int i=0;i<keys.Length;i++)if(sides[keys[i]]==3||covered[i])paired++;
         if(paired==0)return null;
         // Some source leaves have separate front/back polygons with different
         // UVs and lighting on the exact same plane. Drawing both with Cull Off
@@ -252,7 +269,7 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
         var cs=new Color32[indices.Length];var flags=new Vector2[indices.Length];var ix=new int[indices.Length];
         for(int i=0;i<indices.Length;i++){
             int source=indices[i];points[i]=vertices[source];ns[i]=normals[source];ts[i]=uv[source];ts2[i]=uv2[source];cs[i]=colors[source];ix[i]=i;
-            flags[i]=new Vector2(sides[keys[i/3]]==3?1:0,0);
+            flags[i]=new Vector2(sides[keys[i/3]]==3||covered[i/3]?1:0,0);
         }
         vertices=points;normals=ns;uv=ts;uv2=ts2;colors=cs;indices=ix;return flags;
     }

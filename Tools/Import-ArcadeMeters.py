@@ -518,9 +518,6 @@ class Importer:
                 layer["angleMin"], layer["angleMax"] = rotation["values"][0], rotation["values"][-1]
             if "CornerSpeed" in name or any("CornerSpeed" in g["name"] for g in ancestors):
                 layer["disabledReason"] = "Corner-entry/exit speed telemetry is not available in this port."
-            elif role == "drift" and (any(c in name for c in ("Blue", "Orange", "Red"))
-                    or any(g["name"] in ("Blue", "Orange", "Red") for g in ancestors)):
-                layer["disabledReason"] = "Only the source green drift color is enabled; severity colors are not inferred."
             elif "SpeedRateEffect" in name:
                 layer["disabledReason"] = "Speed event trigger is not recovered; retained but not fabricated."
             elif role in ("gearEffect", "gearRoll") and not any("Gear_Change" in c["animation"] and c["values"] for c in curves):

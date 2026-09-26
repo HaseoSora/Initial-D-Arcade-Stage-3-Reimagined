@@ -30,6 +30,7 @@
 #include "hud_analog_presentation.h"
 #include "car_presentation.h"
 #include "car_pose_interpolation.h"
+#include "imported_road_presentation.h"
 #include "online_visual_correction.h"
 #include "original_number_plate.h"
 #include "original_car_dimensions.h"
@@ -188,6 +189,8 @@ struct App {
     VehicleState rivalVehicle{},previousRival{};CarWheelPose rivalWheels{},previousRivalWheels{};
     float rivalPitch=0,rivalRoll=0,previousRivalPitch=0,previousRivalRoll=0;
     OriginalCarBodyPosition playerBody,rivalBody;
+    ImportedRoadPresentation importedRoadPresentation;
+    Vec3 previousImportedActor{};
     Vec3 playerBodyWorld{},previousPlayerBodyWorld{},rivalBodyWorld{},previousRivalBodyWorld{};
     original::OriginalDrivingSession originalSession;
 #include "online_race_app.inl"
@@ -1102,11 +1105,26 @@ struct App {
         if(authorityRace)vehicle.position=vehicle.position+authorityVisualOffset[multiplayer.config.localSlot];
         if(advance)previousPlayerBodyWorld=playerBodyWorld;
         playerBodyWorld=playerBody.update(presentedSession().collision(),unsigned(frontend.car),vehicle.position);
-        if(!advance)previousPlayerBodyWorld=playerBodyWorld;
         // Original motion is(-sin(yaw),-cos(yaw)); host camera/car forward is
         // (+sin(yaw),+cos(yaw)). Apply the half-turn only at presentation.
         vehicle.yaw=wrapAngle(d.f(0x10)+pi+(authorityRace?authorityYawOffset[multiplayer.config.localSlot]:0.f));
         bodyPitch=-d.f(0x0C);bodyRoll=-d.f(0x14);
+        if(importedCourse&&(importedCourse->id==9||importedCourse->id==10)){
+            if(advance)previousImportedActor=importedRoadPresentation.position();
+            const auto& road=playerBody.query();
+            if(importedCourse->id==10)
+                importedRoadPresentation.anchor(vehicle.position,bodyPitch,bodyRoll,road.f(16),
+                    {road.f(0),road.f(4),road.f(8)},vehicle.yaw,playerBody.surfaceFound(),advance?physicsDt:0);
+            else importedRoadPresentation.update(vehicle.position,bodyPitch,bodyRoll,road.f(16),
+                playerBody.surfaceFound()&&road.f(4)>.6f,advance?physicsDt:0);
+            if(importedCourse->id==10&&importedRoadPresentation.ready())
+                playerBodyWorld=Vec3{vehicle.position.x,road.f(16),vehicle.position.z}+
+                    Vec3{road.f(0),road.f(4),road.f(8)}*originalCarRideHeight(unsigned(frontend.car));
+            else playerBodyWorld.y+=importedRoadPresentation.position().y-vehicle.position.y;
+            bodyPitch=importedRoadPresentation.pitch();bodyRoll=importedRoadPresentation.roll();
+            if(!advance)previousImportedActor=importedRoadPresentation.position();
+        }else importedRoadPresentation.reset();
+        if(!advance)previousPlayerBodyWorld=playerBodyWorld;
         const auto& actor=presentedSession().actor();wheelPose.steeringRadians=actor.f(0x3C);
         for(std::size_t i=0;i<4;++i){wheelPose.suspensionY[i]=actor.f(0x40+i*4);wheelPose.rotationRadians[i]=actor.f(0x60+i*4);}
         vehicle.velocity=advance?(vehicle.position-oldPosition)/physicsDt:Vec3{};
@@ -1125,8 +1143,8 @@ struct App {
         const auto& d=presentedSession().vehicle().drive;
         const Vec3 cameraOffset=authorityRace?authorityVisualOffset[multiplayer.config.localSlot]:Vec3{};
         const float cameraYaw=authorityRace?authorityYawOffset[multiplayer.config.localSlot]:0;
-        const Vec3 cameraPosition=Vec3{d.f(0),d.f(4),d.f(8)}+cameraOffset;
-        const Vec3 cameraAngles{d.f(0x0C),d.f(0x10)+cameraYaw,d.f(0x14)};
+        const Vec3 cameraPosition=importedRoadPresentation.ready()?importedRoadPresentation.position():Vec3{d.f(0),d.f(4),d.f(8)}+cameraOffset;
+        const Vec3 cameraAngles{importedRoadPresentation.ready()?-bodyPitch:d.f(0x0C),d.f(0x10)+cameraYaw,importedRoadPresentation.ready()?-bodyRoll:d.f(0x14)};
         const bool initialized=originalCamera.ready();
         if(initialized)previousRearCameraFrame=rearCameraFrame;
         rearCameraFrame=originalCamera.rearView(playerBodyWorld,cameraAngles);
@@ -1201,7 +1219,7 @@ struct App {
         // slot2 for PACK23. A late menu unload would remove the new race bank.
         frontend.endSelectionMusic();
         for(const auto& command:frontend.takeSelectionMusicCommands())audio.selection(command);
-        load();originalHandling=supportsOriginalHandling();originalInput={};raceLightSets.reset();rivalVisible=false;playerBody.reset();rivalBody.reset();carPresentation.resetHeadlights();
+        load();originalHandling=supportsOriginalHandling();originalInput={};raceLightSets.reset();rivalVisible=false;playerBody.reset();rivalBody.reset();importedRoadPresentation.reset();carPresentation.resetHeadlights();
         // Course activation owns these registers. Menu asset preloads must
         // preserve the retained fog table; Happo changes only density/color.
         if(courseIndex==4)original::applyHappoFogRegisters(raceFog,night,wet);
@@ -2994,6 +3012,8 @@ struct App {
         }
         const float alpha=clock.alpha();VehicleState drawCar=vehicle;drawCar.position=lerp(previous.position,vehicle.position,alpha);drawCar.yaw=lerpAngle(previous.yaw,vehicle.yaw,alpha);
         if(menu||paused||race.phase==RacePhase::Finished)drawCar=vehicle;
+        if(importedCourse&&!replayPlaybackActive&&importedRoadPresentation.ready())
+            drawCar.position=menu||paused||race.phase==RacePhase::Finished?importedRoadPresentation.position():lerp(previousImportedActor,importedRoadPresentation.position(),alpha);
         Vec3 target;
         if(menu){
             const Vec3 desired=drawCar.position-forward(drawCar.yaw)*6.3f+right(drawCar.yaw)*7.2f+Vec3{0,3.1f,0};

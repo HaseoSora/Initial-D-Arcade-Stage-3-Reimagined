@@ -715,7 +715,8 @@ public sealed class Idas3SceneRenderer : MonoBehaviour
         if (Array.IndexOf(args, "-idas3-scene-cull-check") < 0 &&
             Array.IndexOf(args, "-idas3-scene-intro-check") < 0 &&
             Array.IndexOf(args, "-idas3-scene-car-door-check") < 0 &&
-            Array.IndexOf(args, "-idas3-scene-intro-foliage-check") < 0)
+            Array.IndexOf(args, "-idas3-scene-intro-foliage-check") < 0 &&
+            Array.IndexOf(args, "-idas3-sadamine-boundary-check") < 0)
             throw new InvalidOperationException("Diagnostic camera requires the isolated culling check.");
         if ((target-eye).sqrMagnitude < .001f) throw new ArgumentException("Degenerate diagnostic camera.");
         diagnosticEye=eye;diagnosticTarget=target;diagnosticCameraPose=true;

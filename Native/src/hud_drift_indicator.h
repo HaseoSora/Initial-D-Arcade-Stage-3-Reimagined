@@ -15,10 +15,11 @@ public:
         float yaw=0;
         bool grounded=true,wallContact=false,active=true,paused=false,discontinuity=false;
     };
-    void reset(){drifting_=false;opacity_=slipDegrees_=0;entry_=release_=inhibit_=0;}
+    void reset(){drifting_=false;opacity_=slipDegrees_=0;entry_=release_=inhibit_=0;level_=candidate_=0;levelReady_=false;levelTime_=0;}
     bool drifting()const{return drifting_;}
     float opacity()const{return float(opacity_);}
     float slipDegrees()const{return slipDegrees_;}
+    unsigned level()const{return level_;} // blue, green, orange, red; retained during fade-out
 
     void advance(float dt,const Input& input){
         // Explicit ownership changes win over pause; a paused valid race freezes
@@ -65,12 +66,31 @@ private:
     // Consume the pre-transition and post-transition portions independently so
     // the same elapsed driving interval has the same fade at 30/60/120 Hz.
     void fade(double seconds,bool visible){
+        if(visible){
+            unsigned wanted=levelReady_?level_:0;
+            while(wanted<3&&slipDegrees_>=LevelThresholds[wanted])++wanted;
+            while(wanted>0&&slipDegrees_<LevelThresholds[wanted-1]-1.5f)--wanted;
+            if(!levelReady_){level_=candidate_=wanted;levelReady_=true;levelTime_=0;}
+            else if(wanted==level_){candidate_=level_;levelTime_=0;}
+            else{
+                if(candidate_!=wanted){candidate_=wanted;levelTime_=0;}
+                levelTime_+=seconds;
+                if(levelTime_>=.08){level_=wanted;levelTime_=0;}
+            }
+        }else{candidate_=level_;levelTime_=0;}
         opacity_=std::clamp(opacity_+(visible?seconds/FadeInSeconds:-seconds/FadeOutSeconds),0.0,1.0);
+        if(opacity_==0&&!visible){level_=candidate_=0;levelReady_=false;}
     }
+    // Adapted to D3 body-slip ranges, not recovered Arcade grade thresholds.
+    // Entry remains eight degrees; deeper sustained slides promote the color.
+    static constexpr float LevelThresholds[]{10.f,13.f,17.f};
     static constexpr double EntrySeconds=.12f,ReleaseSeconds=.18f;
     static constexpr double InhibitSeconds=.25f,FadeInSeconds=.10f,FadeOutSeconds=.20f;
     bool drifting_=false;
     double opacity_=0,entry_=0,release_=0,inhibit_=0;
     float slipDegrees_=0;
+    unsigned level_=0,candidate_=0;
+    bool levelReady_=false;
+    double levelTime_=0;
 };
 }

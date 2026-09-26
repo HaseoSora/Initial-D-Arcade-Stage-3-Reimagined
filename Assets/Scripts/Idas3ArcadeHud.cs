@@ -75,7 +75,8 @@ public sealed class Idas3ArcadeHud : IDisposable
         // Synthetic eight-second preview: drift from 2s to 5s, then fade out.
         // This animation is never used to determine the live vehicle's state.
         float phase=cycle*8,drift=Mathf.SmoothStep(0,1,Mathf.InverseLerp(2,2.15f,phase))*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(5,5.35f,phase)));
-        return new Telemetry{size=40,version=2,flags=1u|(phase>=2&&phase<5?8u:0u),gear=1+Mathf.FloorToInt(cycle*5),speedKmh=35+cycle*170,rpm=1100+Mathf.Repeat(cycle*5,1)*7500,revLimit=8500,
+        uint level=(uint)Mathf.Clamp(Mathf.FloorToInt((phase-2)/.75f),0,3);
+        return new Telemetry{size=40,version=3,flags=1u|(phase>=2&&phase<5?8u:0u)|(level<<8),gear=1+Mathf.FloorToInt(cycle*5),speedKmh=35+cycle*170,rpm=1100+Mathf.Repeat(cycle*5,1)*7500,revLimit=8500,
             throttle=cycle<.78f?Mathf.Clamp01(.3f+cycle):0,brake=cycle>.78f?Mathf.InverseLerp(.78f,1,cycle):0,driftOpacity=drift};
     }
     internal static bool Read(out Telemetry value){
@@ -106,6 +107,7 @@ public sealed class Idas3ArcadeHud : IDisposable
         list.Add(new Sprite{texture=texture,rect=new Rect(346+x-w*.5f,164+y-h*.5f,w,h),uv=atlas??new Rect(0,0,1,1),color=color??Color.white,angle=angle,fill=fill,brake=name=="PointBrake_Mask",additive=additive});
     }
     internal static float LampOpacity(Telemetry t)=>t.version>=2?Mathf.Clamp01(Safe(t.driftOpacity)):0;
+    internal static int DriftLevel(Telemetry t)=>t.version>=3?(int)((t.flags>>8)&3):1;
     internal static float ShiftWarning(Telemetry t){
         // The original transmission's full-throttle target is workingBase-500
         // (15E7F2), not workingBase. Fade in over the preceding 500 RPM.
@@ -153,7 +155,7 @@ public sealed class Idas3ArcadeHud : IDisposable
         Add(list,"PointRmp_"+day,0,-21,20,208,Mathf.Lerp(-120,120,Mathf.Clamp01(rpm/max)));
         Add(list,"PointSpd_"+day,210,3,14,176,Mathf.Lerp(-120,120,Mathf.Clamp01(speed/240)));
         float drift=LampOpacity(t);
-        if(drift>0){
+        if(drift>0&&t.version<3){
             // Source green Stay colors and layer order (core1, glow3, core2).
             // The source center (-212,+54 y-up) becomes -54 in this y-down canvas.
             // Native opacity includes release fading after the active flag clears.
@@ -190,7 +192,7 @@ public sealed class Idas3ArcadeHud : IDisposable
     internal void Build(Idas3GameOptions.Values options,Telemetry data,float width,float height,float seconds,bool preview,out Rect bounds,bool thirdPerson=false){
         imported.AudioBandsOverride=AudioBandsOverride;
         Compose(sprites,options,data,seconds,imported);DriftLampOpacity=available?LampOpacity(data):0;bounds=MeterBounds(width,height,options,thirdPerson);
-        DriftLampSpriteCount=options.hudMeterStyle>1?imported.DriftSpriteCount:DriftLampOpacity>0?3:0;
+        DriftLampSpriteCount=options.hudMeterStyle>1||options.hudMeterStyle==1&&data.version>=3?imported.DriftSpriteCount:DriftLampOpacity>0?3:0;
         if(DriftLampSpriteCount==0)DriftLampOpacity=0;
         if(mesh==null){mesh=new Mesh{name="Arcade meter",hideFlags=HideFlags.DontSave};mesh.MarkDynamic();}
         if(material==null){var shader=Resources.Load<Shader>("ArcadeHud");if(!shader)throw new InvalidOperationException("Arcade HUD shader is missing");material=new Material(shader){hideFlags=HideFlags.DontSave};

@@ -13,6 +13,8 @@
 #include "../tests/imported_car_lighting_app_tests.inl"
 #include "../tests/driving_effects_app_tests.inl"
 #include "../tests/hud_drift_app_tests.inl"
+#include "../tests/imported_road_presentation_app_tests.inl"
+#include "../tests/sadamine_boundary_app_tests.inl"
 #include "../tests/online_collision_app_tests.inl"
 #include "../tests/shared_times_app_tests.inl"
 #include "../tests/player_replays_app_tests.inl"
@@ -349,6 +351,7 @@ IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneModeFlowFixture(int scene){
         if(scene==-11)return runDrivingEffectsAppTests(*r.app)==0?1:0;
         if(scene==-12)return runOnlineCollisionAppTests(*r.app)==0?1:0;
         if(scene==-13){const auto result=runHudDriftAppTests(*r.app);publish(r,0);return result==0?1:0;}
+        if(scene==-14){const auto result=runImportedRoadPresentationAppTests(*r.app);publish(r,0);return result==0?1:0;}
         if(scene==-5)return runSharedTimeAppTests(*r.app)==0?1:0;
         if(scene==-6)return runSharedImportAppTests(*r.app)==0?1:0;
         if(scene==-7)return runPerformanceOptionsAppTests(*r.app)==0?1:0;
@@ -378,7 +381,8 @@ IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneModeFlowFixture(int scene){
             log<<"PASS "<<cases<<" Bunta races: Normal, Hard and Expert produce identical speed and movement at two challenge levels on two courses. Original AI pace retained.\n";
             return 1;
         }
-        if(scene>=350&&scene<=375)prepareSaveChangeMenuFixture(*r.app,unsigned(scene));
+        if(scene>=380&&scene<=391)prepareSadamineBoundaryFixture(*r.app,unsigned(scene));
+        else if(scene>=350&&scene<=375)prepareSaveChangeMenuFixture(*r.app,unsigned(scene));
         else prepareModeFlowFixture(*r.app,unsigned(scene));
         Idas3UiBeginFrame(r.app->renderer.width,r.app->renderer.height);
         if(!r.app->render(0))throw std::runtime_error(r.app->renderer.error);
@@ -1130,7 +1134,7 @@ int IDAS3_UNITY_CALL Idas3SceneGetWheelState(Idas3WheelState* out){
 int IDAS3_UNITY_CALL Idas3SceneGetHudTelemetry(Idas3HudTelemetry* out){
     auto& r=unityRuntime();std::lock_guard lock(r.renderMutex);
     if(!r.sceneMode||!r.app||!out||out->size!=sizeof(*out))return 0;
-    *out={sizeof(*out),2};const auto& app=*r.app;
+    *out={sizeof(*out),3};const auto& app=*r.app;
     if(app.menu||app.loadingActive||app.legendVisitActive||app.preRaceDialogueActive||app.extraModeVisitActive())return 1;
     out->flags=1u|(app.automatic?2u:0u)|(app.night?4u:0u);
     const auto analog=app.presentedHudAnalog();
@@ -1140,6 +1144,7 @@ int IDAS3_UNITY_CALL Idas3SceneGetHudTelemetry(Idas3HudTelemetry* out){
     if(app.race.phase==RacePhase::Running&&!app.replayPlaybackActive&&!app.multiplayerDisconnected()){
         if(app.hudDrift.drifting())out->flags|=8u;
         out->driftOpacity=app.hudDrift.opacity();
+        out->flags|=app.hudDrift.level()<<8;
     }
     return 1;
 }

@@ -39,12 +39,14 @@ float4 ImportedMeterEffect(float2 uv,float4 sampled,float4 tint){
   float2 d=localUv-.5;float radius=length(d);
   float phase=frac(atan2(d.y,d.x)/6.2831853+.25),band=floor(phase*32);
   float level=tex2D(_EffectTex1,float2((band+.5)/32,.5)).r;
-  float inner=.235,outer=inner+level*.235,aa=max(fwidth(radius),.0015);
+  float inner=_EffectParams.x>0?_EffectParams.x:.235;
+  float extent=_EffectParams.y>0?_EffectParams.y:.235;
+  float outer=inner+level*extent,aa=max(fwidth(radius),.0015);
   float bars=smoothstep(inner-aa,inner+aa,radius)*(1-smoothstep(outer-aa,outer+aa,radius));
   float gap=smoothstep(.06,.17,frac(phase*32))*(1-smoothstep(.83,.94,frac(phase*32)));
   float ring=1-smoothstep(.007,.014,abs(radius-inner));
   float noise=.8+.2*tex2D(_EffectTex2,localUv).r;
-  float3 color=lerp(_EffectColor1.rgb,_EffectColor2.rgb,saturate((radius-inner)/.235));
+  float3 color=lerp(_EffectColor1.rgb,_EffectColor2.rgb,saturate((radius-inner)/extent));
   return float4(color*tint.rgb,tint.a*level*saturate(bars*gap+ring*.65)*noise);
  }
  if(_MaterialEffect>3.5&&_MaterialEffect<4.5){

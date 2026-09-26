@@ -5,6 +5,20 @@ using UnityEngine;
 
 public static class Idas3MeterCatalogBuild
 {
+    public static void VerifyDriftGrades(){
+        Idas3MeterLayoutBounds.RecalculateForVerification();
+        Idas3MeterDriftChecks.Run();
+        Debug.Log(Idas3HalloweenLanternChecks.RunChecks());
+        const string path="Assets/Resources/ArcadeHud/Catalog/layout-bounds.json";
+        File.WriteAllText(path,Idas3MeterLayoutBounds.ExportVerifiedBake());
+        AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport|ImportAssetOptions.ForceUpdate);
+        Idas3MeterLayoutBounds.VerifyBakedCache();
+        Debug.Log("PASS drift layout bake and runtime cache");
+    }
+    public static void VerifyVocaloidWaveform(){
+        Debug.Log(Idas3MeterAudioSpectrumChecks.RunChecks());
+        Idas3MikuMeterChecks.Run();
+    }
     public static void VerifyOnly(){
         Idas3MeterLayoutBounds.RecalculateForVerification();
         Idas3HudCustomizationChecks.Run();

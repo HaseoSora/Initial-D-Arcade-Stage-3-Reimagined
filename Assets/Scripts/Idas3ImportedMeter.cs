@@ -16,6 +16,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
     readonly Idas3MeterMaterialAnimation materialAnimation=new Idas3MeterMaterialAnimation();
     readonly Idas3MeterNeedleTrails needleTrails=new Idas3MeterNeedleTrails();
     readonly Idas3HalloweenLanternAnimation lanternAnimation=new Idas3HalloweenLanternAnimation();
+    readonly Idas3MeterDriftAnimation driftAnimation=new Idas3MeterDriftAnimation();
     readonly float[] audioBands=new float[Idas3MeterAudioSpectrum.BandCount];
     readonly Color32[] audioPixels=new Color32[Idas3MeterAudioSpectrum.BandCount];
     Texture2D audioTexture;
@@ -41,7 +42,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
             if(!pair.Value||!pool.TryGetValue(pair.Key,out var entry))continue;
             if(--entry.users==0){pool.Remove(pair.Key);Resources.UnloadAsset(entry.value);}
         }
-        textures.Clear();current=null;animationState.Reset();materialAnimation.Reset();needleTrails.Reset();lanternAnimation.Reset();
+        textures.Clear();current=null;animationState.Reset();materialAnimation.Reset();needleTrails.Reset();lanternAnimation.Reset();driftAnimation.Reset();
         if(audioTexture){if(Application.isPlaying)UnityEngine.Object.Destroy(audioTexture);else UnityEngine.Object.DestroyImmediate(audioTexture);}
         audioTexture=null;audioEnergy=0;audioRevision=-1;audioTime=0;
     }
@@ -142,6 +143,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
     bool Progress(Curve c,Idas3ArcadeHud.Telemetry data,float seconds,bool shiftLights,out float progress){
         progress=0;
         if(lanternAnimation.TryProgress(c,out progress))return true;
+        if(data.version>=3&&Contains(c.animation,"DriftLamp"))return driftAnimation.TryProgress(c,out progress);
         if(Contains(c.animation,"Gear_Change"))return animationState.TryProgress(c,out progress);
         if(Contains(c.animation,"LED"))return false; // Authored LED programs use the material clock.
         if(Contains(c.animation,"Corner")||Contains(c.animation,"LowLamp"))return false;
@@ -172,7 +174,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
 
     internal void Compose(List<Idas3ArcadeHud.Sprite> result,Meter meter,Idas3GameOptions.Values options,Idas3ArcadeHud.Telemetry data,float seconds,bool gearEffectsOnly=false){
         if(current!=meter){Dispose();current=meter;}
-        animationState.Update(meter,data,seconds);materialAnimation.Update(meter,data,seconds);needleTrails.Update(meter,data,seconds);lanternAnimation.Update(meter,data,seconds);seconds=Safe(seconds);
+        animationState.Update(meter,data,seconds);materialAnimation.Update(meter,data,seconds);needleTrails.Update(meter,data,seconds);lanternAnimation.Update(meter,data,seconds);driftAnimation.Update(meter,data,seconds);seconds=Safe(seconds);
         DriftSpriteCount=0;
         if(meter==null)return;
         if(meter.id==68||meter.id==69||meter.id==70||meter.id==74)UpdateAudio(seconds);
@@ -185,12 +187,12 @@ internal sealed class Idas3ImportedMeter : IDisposable
             if(layer.switchers!=null)foreach(var choice in layer.switchers)
                 if(led&&choice.name=="LED_Top")continue;
                 else
-                if(choice.index!=(choice.name=="DriftLampColor"?1:choice.activeIndex)){selected=false;break;}
+                if(choice.index!=(choice.name=="DriftLampColor"?Idas3ArcadeHud.DriftLevel(data):choice.activeIndex)){selected=false;break;}
             if(!selected)continue;
             Rect ledUv=default;
             if(led&&!materialAnimation.TryLed(layer,out ledUv))continue;
             string role=layer.role??"static";
-            if(gearEffectsOnly&&role!="gearEffect"&&role!="gearRoll")continue;
+            if(gearEffectsOnly&&role!="gearEffect"&&role!="gearRoll"&&!(data.version>=3&&role=="drift"))continue;
             if(role=="gearEffect"||role=="gearRoll"){
                 bool playing=false;
                 if(layer.curves!=null)foreach(var curve in layer.curves)
@@ -231,13 +233,14 @@ internal sealed class Idas3ImportedMeter : IDisposable
             var initial=Initial(layer);var state=initial;
             float percentage=Scalar(layer,"Percentage",1),start=Scalar(layer,"StartPosition",0),width=Scalar(layer,"Width",1);
             float scrollU=Scalar(layer,"U Scroll",0),scrollV=Scalar(layer,"V Scroll",0),animatedIndex=-1;
-            bool animatedRotation=false,animatedPercentage=false,animatedMaterial=false,clipped=false;
+            bool animatedRotation=false,animatedPercentage=false,animatedMaterial=false,clipped=false,driftFadeApplied=false;
             Rect clip=default;float ancestorAlpha=1;
             if(layer.parents!=null)foreach(var owner in layer.parents){
                 var original=Initial(owner);var changed=original;
                 if(layer.curves!=null)foreach(var curve in layer.curves){
                     if(curve.owner?.name!=owner.name||!Progress(curve,data,seconds,options.hudShiftLights,out float progress))continue;
                     Apply(ref changed,curve.property,Evaluate(curve,progress));
+                    if(Contains(curve.animation,"DriftLamp_InOut")&&(curve.property=="Color.A"||curve.property=="RenderOpacity"))driftFadeApplied=true;
                 }
                 ancestorAlpha*=changed.opacity*changed.colorAlpha;
                 var origin=Matrix(owner.transform);
@@ -250,6 +253,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
                 if(curve.owner!=null&&!string.IsNullOrEmpty(curve.owner.name)&&curve.owner.name!=layer.name||!Progress(curve,data,seconds,options.hudShiftLights,out float progress))continue;
                 float value=Evaluate(curve,progress);
                 Apply(ref state,curve.property,value);
+                if(Contains(curve.animation,"DriftLamp_InOut")&&(curve.property=="Color.A"||curve.property=="RenderOpacity"))driftFadeApplied=true;
                 if(curve.property=="Rotation")animatedRotation=true;
                 switch(curve.property){case "Color.R":color.r=value;break;case "Color.G":color.g=value;break;case "Color.B":color.b=value;break;case "Color.A":color.a=value;state.colorAlpha=1;break;}
                 if(curve.parameter=="Percentage"){percentage=value;animatedPercentage=true;animatedMaterial=true;}
@@ -277,7 +281,8 @@ internal sealed class Idas3ImportedMeter : IDisposable
                 // Steampunk's Stay curves already reveal its lamp group and
                 // set its light intensity. Activation must preserve that alpha,
                 // including its disabled negative-opacity white overlay.
-                color.a=meter.id==66?Mathf.Clamp01(color.a)*opacity:opacity;
+                color.a=role=="drift"&&data.version>=3?Mathf.Clamp01(color.a)*(driftFadeApplied?1:opacity):
+                    meter.id==66?Mathf.Clamp01(color.a)*opacity:opacity;
             }
             // Slate multiplies the brush tint after the animated widget color.
             // Keeping it separate preserves Steampunk's orange glass/glows and
@@ -357,6 +362,10 @@ internal sealed class Idas3ImportedMeter : IDisposable
                 sprite.effectColor1=MaterialColor(layer,"BaseColor",Color.red);sprite.effectColor2=MaterialColor(layer,"LightColor",Color.red);sprite.effectColor3=MaterialColor(layer,"HighLight",Color.yellow);
             }else if(Contains(layer.materialParent,"M_AudioCapture.")){
                 sprite.materialEffect=3;sprite.effectTex1=audioTexture;sprite.effectTex2=BoundTexture(layer,"AudioNoise");
+                // DIVA's 308px spectrum canvas surrounds a 132px-radius dial.
+                // Begin at its outer rim: an interior spectrum is hidden by
+                // the later face/frame layers until the audio nearly peaks.
+                if(meter.id>=68&&meter.id<=70)sprite.effectParams=new Vector4(132f/308f,20f/308f,0,0);
                 sprite.effectColor1=MaterialColor(layer,"Color1",Color.cyan);sprite.effectColor2=MaterialColor(layer,"Color2",Color.green);
             }else if(led){sprite.materialEffect=4;sprite.effectTex1=BoundTexture(layer,"LedEffect01");sprite.effectTex2=BoundTexture(layer,"LedEffect02");}
             else if(Contains(layer.materialParent,"M_Add02.")){

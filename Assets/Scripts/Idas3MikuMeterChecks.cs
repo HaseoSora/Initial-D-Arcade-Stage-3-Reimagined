@@ -20,7 +20,7 @@ public static class Idas3MikuMeterChecks
         public bool passed;
         public int checks, gpuFrames, initialResidentTextures, finalResidentTextures;
         public string graphicsDevice;
-        public string coverage = "Source-derived frame dimensions/centers for Miku68–73, unchanged dial pivots, runtime-selected day/night needles71–73, production live/preview sprite geometry and uniform HUD resizing, GPU live-path day/night/audio/rotating-ring crops. Preview IMGUI rasterization requires separate player visual review.";
+        public string coverage = "Source-derived frame dimensions/centers for Miku68–73, unchanged dial pivots, runtime-selected day/night needles71–73, production live/preview sprite geometry and uniform HUD resizing, GPU live-path day/night/audio/rotating-ring crops; exterior waveform visibility and growth on68–70 at75/150% in day/night. Preview IMGUI rasterization requires separate player visual review.";
         public List<Result> results = new List<Result>();
         public List<string> errors = new List<string>();
     }
@@ -160,6 +160,8 @@ public static class Idas3MikuMeterChecks
                             "Live and preview disagree on widget geometry at index " + i + ".");
                         Verify(preview[i].texture && race[i].texture && preview[i].texture.name == race[i].texture.name, result,
                             "Live and preview select different artwork at index " + i + ".");
+                        if (race[i].materialEffect == 3)
+                            Verify(preview[i].effectParams == race[i].effectParams, result, "Preview and live waveform use different radii.");
                     }
                     var largeVertices = ((Mesh)LiveMesh.GetValue(live)).vertices;
                     options.SetHudSizePercent(2, 75);
@@ -225,6 +227,60 @@ public static class Idas3MikuMeterChecks
                 finally { commands.Clear(); options.SetHudSizePercent(2, 150); }
             }
         }
+        void OuterWaveform(Result result, Idas3GameOptions.Values options)
+        {
+            if (result.sourceId > 70) return;
+            var content = Idas3MeterLayoutBounds.Get(options.hudMeterStyle);
+            using (var renderer = new Idas3ArcadeHud())
+            {
+                try
+                {
+                    foreach (int size in new[] { 75, 150 })
+                    foreach (bool night in new[] { false, true })
+                    {
+                        options.SetHudSizePercent(2, size);
+                        var bounds = Idas3ArcadeHud.MeterBounds(Width, Height, options);
+                        float scale = bounds.width / content.width;
+                        var data = Data(night);
+                        string label = "waveform-" + size + (night ? "-night" : "-day");
+                        renderer.AudioBandsOverride = new float[32];
+                        Capture(renderer, options, data, .125f, result, label + "-silent");
+                        var silent = readback.GetPixels32();
+                        int moderateCount = 0;
+                        foreach (float energy in new[] { .45f, 1f })
+                        {
+                            var bands = new float[32];
+                            for (int i = 0; i < bands.Length; ++i) bands[i] = energy;
+                            renderer.AudioBandsOverride = bands;
+                            Capture(renderer, options, data, .125f, result, label + (energy < 1 ? "-moderate" : "-peak"));
+                            var active = readback.GetPixels32();
+                            int exterior = 0, beyondQuad = 0;
+                            for (int y = 0; y < Height; ++y)
+                            for (int x = 0; x < Width; ++x)
+                            {
+                                // Source frame's left dial is centered near (175,208)
+                                // with a 132px outer rim. Only inspect its exposed left
+                                // half; the right half is covered by the tachometer.
+                                float dx = (x + .5f - bounds.x) / scale + content.x - 175;
+                                float dy = (Height - y - .5f - bounds.y) / scale + content.y - 208;
+                                if (dx >= -20) continue;
+                                float radius = Mathf.Sqrt(dx * dx + dy * dy);
+                                int i = y * Width + x;
+                                int delta = Math.Max(Math.Abs(active[i].r - silent[i].r), Math.Max(Math.Abs(active[i].g - silent[i].g), Math.Abs(active[i].b - silent[i].b)));
+                                if (delta <= 12) continue;
+                                if (radius >= 136 && radius <= 153) ++exterior;
+                                if (radius > 156) ++beyondQuad;
+                            }
+                            Verify(exterior > 30 * scale * scale, result, label + ": audio is hidden inside the dial at energy " + energy + " (exterior pixels " + exterior + ").");
+                            Verify(beyondQuad == 0, result, label + ": waveform spills outside its authored canvas.");
+                            if (energy < 1) moderateCount = exterior;
+                            else Verify(exterior > moderateCount * 1.2f, result, label + ": waveform does not extend farther outward with louder audio.");
+                        }
+                    }
+                }
+                finally { commands.Clear(); options.SetHudSizePercent(2, 150); }
+            }
+        }
         internal void Run()
         {
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) throw new InvalidOperationException("Miku GPU checks require a graphics device.");
@@ -233,7 +289,7 @@ public static class Idas3MikuMeterChecks
             for (int source = 68; source <= 73; ++source)
             {
                 var result = new Result { sourceId = source }; report.results.Add(result);
-                try { var options = Options(source); SourceGeometry(result, options); PreviewAndResize(result, options); Gpu(result, options); }
+                try { var options = Options(source); SourceGeometry(result, options); PreviewAndResize(result, options); Gpu(result, options); OuterWaveform(result, options); }
                 catch (Exception error) { result.passed = false; result.errors.Add(error.ToString()); report.errors.Add(source + ": " + error); }
             }
             report.finalResidentTextures = Idas3ImportedMeter.ResidentTextureCount;

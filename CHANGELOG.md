@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.3.95-community-replays.36 - September 26, 2026
+
+This update restores graded tachometer drift lights and fixes imported-course visuals.
+
+- Restored blue, green, orange and red drift indicators across all 82 compatible tachometers, including their layered glows and animations. Deeper sustained slides raise the level; brief slip changes, impacts and airborne motion are filtered out.
+- Removed repeated grounded car and camera bouncing across Sadamine by anchoring the displayed car to the road; reduced the same chatter on Hakone.
+- Fixed flickering overlapping leaf faces on Sadamine trees and roadside forest/bush panels, including faces with different triangle layouts.
+- Fixed the Hatsune Miku, Kagamine Rin & Len, and Megurine Luka audio waveforms being hidden inside the meter; bars now extend outward from the dial rim.
+- Corrected inverted road shadows on Hakone and Sadamine, including wet-weather masks.
+- Fixed overlapping uphill/downhill fences and checkpoint gates on Sadamine.
+
+Drift levels are adapted to this game’s physics using the recovered artwork and animations; exact arcade thresholds are not claimed.
+
+Community Time Attack submissions require exactly `.36`. Existing times, replays and season 2 are preserved. Both online players need this version. Changed-file patches support `.20` through `.35`; the full Windows ZIP supports new installations and Full Repair.
+
+A verified original GDS-0033 dump is required. No ROM, personal saves or custom music are included.
+
 ## 0.3.95-community-replays.35 - September 26, 2026
 
 This update restores the leaderboard after completed Time Attack runs and addresses the reproduced bugs from the Discord bugs channel.

@@ -13,6 +13,8 @@ Shader "IDAS3/Original Scene Material"
   _ImportedCoverage("Imported cutout coverage",Float)=0
   _ImportedCutoff("Imported alpha cutoff",Float)=0
   _ImportedHasShadow("Imported road shadow enabled",Float)=0
+  _ImportedShadowOnly("Imported shadow overlay",Float)=0
+  _ImportedShadowUv("Imported shadow UV set",Float)=1
   _ImportedSky("Imported sky",Float)=0
   _ImportedNight("Imported night scenery",Float)=0
   _ImportedPs2Lighting("PS2 baked color and linear fog",Float)=0

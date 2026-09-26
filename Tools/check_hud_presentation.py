@@ -90,8 +90,10 @@ def main():
             old_hud = reference.read('Idas3SceneGetHudTelemetry', Hud)
             check(timing.tick == ornament.tick and timing.flags == ornament.flags, 'Cosmetic timing disagrees with pose owner')
             check(0 <= timing.alpha <= 1, 'Invalid render interpolation fraction')
-            check((hud.gear, hud.flags, hud.limit, hud.throttle, hud.brake) ==
-                  (old_hud.gear, old_hud.flags, old_hud.limit, old_hud.throttle, old_hud.brake), 'Discrete HUD signals changed')
+            # v3 adds cosmetic drift-grade bits; existing discrete signals must
+            # still match an older baseline DLL byte-for-byte.
+            check((hud.gear, hud.flags & ~0x300, hud.limit, hud.throttle, hud.brake) ==
+                  (old_hud.gear, old_hud.flags & ~0x300, old_hud.limit, old_hud.throttle, old_hud.brake), 'Discrete HUD signals changed')
             if timing.flags == 1:
                 seen[timing.tick] = (state.rpm, state.speed)
                 if timing.tick - 1 in seen:

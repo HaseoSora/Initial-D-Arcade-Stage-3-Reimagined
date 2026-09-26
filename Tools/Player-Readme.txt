@@ -1,4 +1,10 @@
-0.3.95-community-replays.35
+0.3.95-community-replays.36
+GRADED DRIFT LIGHTS AND IMPORTED-COURSE FIXES
+Restored four-color drift lamps and glow/blink animations across 82 tachometers. Deeper sustained slides raise the level, with stable timing across frame rates.
+Fixed Sadamine foliage flicker, repeated grounded car/camera bouncing and overlapping direction-specific fences/gates. Corrected Hakone/Sadamine road shadows. Vocaloid waveforms now extend outside the dial rim.
+Changed-file patches are available from .20 through .35. Existing saves, settings, replays, custom music and original ROMs are preserved.
+
+PREVIOUS UPDATE (.35)
 TIME ATTACK, CONTROLS, REPLAYS AND HUD FIXES
 Completed Time Attacks now show the leaderboard even outside the top ten. Fixed retained opponent collision in solo races, blocked shifting after pause, and controller reconnect/binding locks caused by held wheel controls.
 Replays retain recorded tuning/RPM and road headlights. Imported meters regain speed-color effects and earlier shift warnings. Wide meters have improved camera-specific default placement; existing custom layouts are preserved. HUD artwork can be moved partly beyond the screen edge.
@@ -22,7 +28,7 @@ Provide your original Initial D Arcade Stage 3 GDS-0033 dump in the rom folder b
 No original ROM is included or downloaded. First launch creates rom/README.txt if needed. Updates and Full Repair preserve your ROM files and do not replace a missing or invalid dump.
 
 COMMUNITY TIME ATTACK
-Only 0.3.95-community-replays.35 can submit new times. After updating, complete a new Time Attack; queued runs from older builds are no longer eligible. Existing published times, replay downloads and the current season remain available.
+Only 0.3.95-community-replays.36 can submit new times. After updating, complete a new Time Attack; queued runs from older builds are no longer eligible. Existing published times, replay downloads and the current season remain available.
 Both online players need this version. Updates use a smaller changed-file patch when available for the installed version. Saves, settings, replays, custom music and locally supplied ROM files are preserved.
 
 FIXES INCLUDED FROM .28

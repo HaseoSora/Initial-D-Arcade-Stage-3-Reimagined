@@ -9,7 +9,7 @@ using UnityEngine;
 public static class Idas3MeterLayoutBounds
 {
     // Bump when composition or bounds sampling changes its authored envelope.
-    const int RendererVersion=10;
+    const int RendererVersion=11;
     [Serializable] sealed class AlphaCatalog {public AlphaTexture[] textures=Array.Empty<AlphaTexture>();}
     [Serializable] sealed class AlphaTexture {public string texture,name;public float x,y,width,height;}
     [Serializable] sealed class BakedCatalog {public int rendererVersion;public string catalogSha256,alphaSha256;public BakedLayout[] layouts;}
@@ -154,6 +154,20 @@ public static class Idas3MeterLayoutBounds
                 telemetry.gear=4;sprites.Clear();renderer.Compose(sprites,meter,options,telemetry,.1f);
                 sprites.Clear();renderer.Compose(sprites,meter,options,telemetry,.1f+step/24f);
                 foreach(var sprite in sprites)if(sprite.texture&&sprite.color.a>0)bounds=Union(bounds,VisibleMeter(sprite));
+            }
+            // Include every grade and its authored moving/glowing envelope,
+            // particularly Halloween's stronger red lantern swing. This union
+            // is baked so live grade changes never resize or shift the HUD.
+            if(Array.Exists(meter.layers,l=>l.role=="drift"))for(uint grade=0;grade<4;++grade){
+                float duration=1;
+                foreach(var layer in meter.layers)if(layer.curves!=null)foreach(var curve in layer.curves)
+                    if(curve.animation!=null&&curve.animation.Contains("DriftLamp"))duration=Mathf.Max(duration,Idas3MeterAnimationState.DurationSeconds(curve));
+                for(int step=0;step<=60;++step){
+                    var telemetry=new Idas3ArcadeHud.Telemetry{size=40,version=3,flags=9|(grade<<8),gear=3,
+                        speedKmh=150,rpm=7000,revLimit=8500,throttle=1,driftOpacity=1};
+                    sprites.Clear();renderer.Compose(sprites,meter,options,telemetry,step*duration/60);
+                    foreach(var sprite in sprites)if(sprite.texture&&sprite.color.a>0)bounds=Union(bounds,VisibleMeter(sprite));
+                }
             }
             // Halloween's lantern swings on real drift enter/exit events. The
             // steady lamp samples above cannot cover that motion. Reserve its

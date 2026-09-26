@@ -18,6 +18,7 @@
    Texture2D _ImportedShadowTex; SamplerState sampler_ImportedShadowTex;
    float _ImportedSponsorSigns;
    float _ImportedCoverage,_ImportedCutoff,_ImportedHasShadow,_ImportedSky,_ImportedNight;
+   float _ImportedShadowOnly,_ImportedShadowUv;
    float4 _ImportedSunDirection,_ImportedFogColor,_ImportedFogRange;
    #endif
    StructuredBuffer<float4> _IdasFrameWords;
@@ -232,12 +233,16 @@ void showroomGeometry(triangle P input[3],inout TriangleStream<P> stream){
 }
 float4 mainPS(P v):SV_TARGET{
 #if defined(IDAS_IMPORTED_COURSE)
+ float2 shadowUv=_ImportedShadowUv==0?v.uv:v.offsetColor.xy;
  // Sponsor panels are two-sided. Only tagged logo atlas tiles may reflect;
  // the screen-space U direction keeps lettering readable from either side.
  if(_ImportedSponsorSigns!=0&&v.sponsorAxis>0&&ddx(v.uv.x)<0)v.uv.x=v.sponsorAxis-v.uv.x;
  // Hakone packs the lettering along decreasing V instead of increasing U.
  if(_ImportedSponsorSigns!=0&&v.sponsorAxis<0&&ddx(v.uv.y)>0)v.uv.y=-v.sponsorAxis-v.uv.y;
  float4 color=_MainTex.Sample(sampler_MainTex,v.uv);
+ // Stage 8 type-6 atlases encode visibility, not black-overlay opacity.
+ // The standalone road-shadow pass must invert the same mask as UV2 shadows.
+ if(_ImportedShadowOnly!=0)color.a=1-color.a;
  if(_ImportedCoverage!=0){
   // Derivative-scaled coverage stays approximately one pixel wide while the
   // camera moves. MSAA resolves that coverage instead of binary leaf flicker.
@@ -260,8 +265,8 @@ float4 mainPS(P v):SV_TARGET{
  // geometry uses directional lighting, avoiding double-darkened foliage.
  if(_ImportedSky==0 && _ImportedNight==0 && dot(v.n,v.n)>.01)
   color.rgb*=idasNativeDiffuse(v.n,v.world,_WorldSpaceCameraPos,_ImportedSunDirection.xyz);
- float4 shadow=_ImportedShadowTex.Sample(sampler_ImportedShadowTex,v.offsetColor.xy);
- color.rgb*=lerp(1,.32+.68*shadow.rgb,shadow.a*_ImportedHasShadow);
+ float4 shadow=_ImportedShadowTex.Sample(sampler_ImportedShadowTex,shadowUv);
+ color.rgb*=lerp(1,.32+.68*shadow.rgb,(1-shadow.a)*_ImportedHasShadow);
  if(_ImportedSky==0){
   // Night source Mie coefficients are not RGB fog (several are white/0.4).
   // Reuse D3's native night atmosphere instead of turning the horizon white.

@@ -4,8 +4,8 @@ using Meter=Idas3ArcadeMeterCatalog.Meter;
 using Curve=Idas3ArcadeMeterCatalog.Curve;
 
 // Halloween's source lantern swings on drift entry/exit. The source plays its
-// InOut animation forwards/reversed; its separate graded Blink state has no
-// equivalent telemetry here. Use the native active bit, never the fading alpha.
+// InOut animation forwards/reversed. Graded Blink is handled by the shared
+// drift animation clock. Use the native active bit, never the fading alpha.
 internal sealed class Idas3HalloweenLanternAnimation
 {
     Meter meter;
