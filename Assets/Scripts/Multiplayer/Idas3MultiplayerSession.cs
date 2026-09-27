@@ -359,19 +359,20 @@ namespace Idas3.Multiplayer
                 using(var file=File.OpenRead(typeof(Idas3MultiplayerSession).Assembly.Location)) complete+="-"+Convert.ToBase64String(hash.ComputeHash(file));
             }
             for(int course=11;course<Idas3CourseCatalog.Count;++course)
-                complete+="-"+course+"-"+SpecialStageFingerprint(Path.Combine(Application.streamingAssetsPath,Idas3CourseCatalog.Packs[course-9]),Idas3CourseCatalog.Slugs[course-9],course>=12);
+                complete+="-"+course+"-"+SpecialStageFingerprint(Path.Combine(Application.streamingAssetsPath,Idas3CourseCatalog.Packs[course-9]),Idas3CourseCatalog.Slugs[course-9],course>=12&&course<=14,course==15);
             complete+=ExperimentalAuthority?"-authority1":"-pose1";
             // Never cache an incomplete identity when reading a course fails.
             return compatibility=complete;
         }
         internal static string EnnaFingerprint(string folder)=>SpecialStageFingerprint(folder,"enna",false);
-        internal static string SpecialStageFingerprint(string folder,string slug,bool scaledTimers)
+        internal static string SpecialStageFingerprint(string folder,string slug,bool scaledTimers,bool stage8=false)
         {
             if(!File.Exists(Path.Combine(folder,"menu.idastex")))return "absent";
             // Hash only simulation inputs, once per handshake. Two peers must
             // not run different paths/collision meshes under identical code.
             using(var hash=SHA256.Create())using(var combined=new MemoryStream()){
-                var names=new List<string>{"course.id",slug+"_path.bin",slug+"_path_l.bin",slug+"_path_r.bin","race-markers.bin","collision-0.rcl","collision-1.rcl"};
+                var names=new List<string>{"course.id",slug+"_path.bin",slug+"_path_l.bin",slug+"_path_r.bin"};
+                names.AddRange(stage8?new[]{"race.bin",slug+".rcl"}:new[]{"race-markers.bin","collision-0.rcl","collision-1.rcl"});
                 if(scaledTimers)names.Add("timer-scale.bin");
                 foreach(string name in names){
                     using(var file=File.OpenRead(Path.Combine(folder,name))){var part=hash.ComputeHash(file);combined.Write(part,0,part.Length);}

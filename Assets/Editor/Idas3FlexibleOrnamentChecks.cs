@@ -102,7 +102,7 @@ public static class Idas3FlexibleOrnamentChecks
                 if(checkedRigs.Add(entry.strapId)){RigCheck(renderer,entry.strapId);++report.rigChecks;}
                 ++report.models;
             }
-            Check(report.models==280&&checkedRigs.Count==4,"dynamic catalog coverage incomplete");
+            Check(report.models==314&&checkedRigs.Count==4,"dynamic catalog coverage incomplete");
             using(var renderer=new Idas3OrnamentRenderer()){
                 var state=Pose(35,3);var interpolate=typeof(Idas3OrnamentRenderer).GetMethod("RenderInterpolatedMotion",Private);
                 Vector3 first=Vector3.zero,last=Vector3.zero;

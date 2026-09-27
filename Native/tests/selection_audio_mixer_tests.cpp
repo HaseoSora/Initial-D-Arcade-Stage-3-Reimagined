@@ -1,5 +1,6 @@
 #include "audio.h"
 #include "original_stream_gain.h"
+#include "music_loudness.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -77,15 +78,18 @@ void play(EngineAudio& audio,Reference& reference,OriginalSelectionMusicState& m
     require(audio.selectionStatistics().sourceLevel==originalSelectionMusicDescriptor(cue).sourceLevel,"Source level not applied");
     compare(audio,reference,44100);require(nonzero>audibleBefore+100,"Selected source bank produced no audible notes");
 }
-std::array<float,2> streamSample(const OriginalAudioClip& clip,double frame,unsigned volume=127,bool sourceVolume=false){
+std::array<float,2> streamSample(const OriginalAudioClip& clip,double frame,unsigned volume=127,bool sourceVolume=false,float raceGain=1,float bedGain=.38f){
     std::array<float,2> out{};const auto at=std::size_t(frame);if(at>=clip.frames())return out;const float fraction=float(frame-at);
     for(unsigned c=0;c<2;++c){const auto a=at*clip.channels+std::min(c,clip.channels-1),b=std::min(at+1,clip.frames()-1)*clip.channels+std::min(c,clip.channels-1);
         const float value=(clip.samples[a]+(clip.samples[b]-clip.samples[a])*fraction)/32768.f;
-        out[c]=value*.38f*(sourceVolume?originalStreamGain(std::uint8_t(volume)):1.f);
+        out[c]=value*bedGain*(sourceVolume?originalStreamGain(std::uint8_t(volume)):raceGain);
     }return out;
 }
 void stream(EngineAudio& audio,Reference&reference,const OriginalAudioClip& clip,unsigned volume,unsigned count,bool menu=false){
-    double frame=0;for(unsigned i=0;i<count;++i){const auto expected=reference.render(true,menu,streamSample(clip,frame,volume,menu));require(audio.renderStereo(800,0,0,0,false)==expected,"Race/attract stream or retained DSP tail differs");frame+=double(clip.sampleRate)/44100;++comparisons;}
+    const int scene=audio.raceTimingStatistics().scene;
+    const float gain=scene==1||scene==4?float(music_loudness::measure<std::int16_t>(clip.samples,clip.sampleRate,clip.channels).gain):1.f;
+    const float bedGain=scene==1||scene==4?music_loudness::raceMixGain:.38f;
+    double frame=0;for(unsigned i=0;i<count;++i){const auto expected=reference.render(true,menu,streamSample(clip,frame,volume,menu,gain,bedGain));require(audio.renderStereo(800,0,0,0,false)==expected,"Race/attract stream or retained DSP tail differs");frame+=double(clip.sampleRate)/44100;++comparisons;}
 }
 void finishStreams(const std::filesystem::path& root){
     using Outcome=EngineAudio::FinishOutcome;

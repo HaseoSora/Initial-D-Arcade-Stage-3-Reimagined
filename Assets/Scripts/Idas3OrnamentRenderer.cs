@@ -87,6 +87,13 @@ public sealed class Idas3OrnamentRenderer : IDisposable
             var part=model.Parts[partIndex];
             var source=part.material;var material=new Material(shader){hideFlags=HideFlags.DontSave};
             material.SetTexture("_MainTex",LoadTexture(source.texture));material.SetColor("_Color",source.tint);
+            if(!string.IsNullOrEmpty(source.specularTexture)){
+                material.SetTexture("_SpecularTex",LoadTexture(source.specularTexture));material.SetFloat("_SpecularStrength",Mathf.Clamp(source.specularStrength,0,2));
+                material.SetFloat("_Roughness",Mathf.Clamp01(source.roughness));material.SetFloat("_MaterialMaps",1);
+            }
+            if(!string.IsNullOrEmpty(source.normalTexture)){
+                material.SetTexture("_NormalTex",LoadTexture(source.normalTexture));material.SetFloat("_NormalMap",1);
+            }
             material.SetFloat("_Cutoff",source.alphaCutoff);material.SetInt("_Cull",source.doubleSided?0:2);material.SetInt("_ZWrite",source.transparent?0:1);
             if(rig!=null)chainMeshes.Add(new Idas3OrnamentChainMesh(part.mesh,assembly,rig,partIndex));
             materials.Add(material);pieces.Add(new Piece{mesh=part.mesh,material=material,assembly=rig!=null?Matrix4x4.identity:assembly,chain=rig!=null});

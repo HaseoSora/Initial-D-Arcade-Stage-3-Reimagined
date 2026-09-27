@@ -66,7 +66,7 @@ public static class Idas3ArcadeMeterCatalog
         var data=JsonUtility.FromJson<Catalog>(json.text);if(data?.meters==null)return;
         Array.Sort(data.meters,(a,b)=>a.id.CompareTo(b.id));
         foreach(var meter in data.meters){
-            if(meter==null||meter.id<0||meter.id>89||meters.ContainsKey(meter.id)||meter.layers==null||meter.layers.Length==0)continue;
+            if(meter==null||meter.id<0||meter.id>117||meter.id==113||meter.id==114||meters.ContainsKey(meter.id)||meter.layers==null||meter.layers.Length==0)continue;
             meters.Add(meter.id,meter);if(meter.id!=31)styles.Add(meter.id+2);
         }
     }

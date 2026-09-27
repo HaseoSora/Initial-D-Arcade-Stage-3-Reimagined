@@ -5,18 +5,18 @@ using UnityEngine;
 // Course identities are stable across saves, replays, matchmaking and the board.
 public static class Idas3CourseCatalog
 {
-    public static readonly string[] Names={"Myogi","Usui","Akagi","Akina","Happogahara","Irohazaka","Shomaru","Tsuchisaka","Akina Snow","Hakone","Sadamine","Enna Skyline","Myogi (Special Stage)","Usui (Special Stage)","Momiji Line"};
-    public static readonly string[] Packs={"HAKONE","SADAMINE","ENNA","MYOGI_SPECIAL","USUI_SPECIAL","MOMIJI"};
-    public static readonly string[] Slugs={"hakone","sadamine","enna","myogi_special","usui_special","momiji"};
+    public static readonly string[] Names={"Myogi","Usui","Akagi","Akina","Happogahara","Irohazaka","Shomaru","Tsuchisaka","Akina Snow","Hakone","Sadamine","Enna Skyline","Myogi (Special Stage)","Usui (Special Stage)","Momiji Line","Tsubaki Line"};
+    public static readonly string[] Packs={"HAKONE","SADAMINE","ENNA","MYOGI_SPECIAL","USUI_SPECIAL","MOMIJI","TSUBAKI"};
+    public static readonly string[] Slugs={"hakone","sadamine","enna","myogi_special","usui_special","momiji","tsubaki"};
     public static int Count=>Names.Length;
     public static int ConditionCount=>Count*2;
     internal static string SceneName(Idas3Native.Status status){
         // Imported races expose a legacy owner index in status.course; flags identify the actual map.
         int course=(status.flags&IdasSpecialStageEnnaCourse.SceneFlag)!=0?IdasSpecialStageEnnaCourse.CourseId(status.flags):
-            (status.flags&16384u)!=0?((status.flags&524288u)!=0?10:9):Mathf.Clamp(status.course,0,8);
+            (status.flags&16384u)!=0?Idas8HakoneCourse.CourseId(status.flags):Mathf.Clamp(status.course,0,8);
         return Names[course];
     }
-    public static bool RequiresNight(int course)=>course==4||course==8||course>=11&&course<Count;
+    public static bool RequiresNight(int course)=>course==4||course==8||course>=11&&course<=14;
     public static string DirectionToken(int course,bool reverse){
         if(course<0||course>=Count)throw new ArgumentOutOfRangeException(nameof(course));
         if(course<2)return reverse?"cw":"ccw";

@@ -14,7 +14,9 @@ int main()try{
     for(unsigned course=11;course<supportedCourseCount;++course)for(unsigned reverse=0;reverse<2;++reverse)for(unsigned wet=0;wet<2;++wet){
         Idas3MultiplayerConfig enna{40,2,course,reverse,wet,1,0,8,0,1};
         validateMultiplayerConfig(enna);check(true,"Enna downhill/uphill dry/wet allowed");
-        enna.night=0;rejected([&]{validateMultiplayerConfig(enna);});
+        enna.night=0;
+        if(importedCourseDefinition(course).nightOnly)rejected([&]{validateMultiplayerConfig(enna);});
+        else {validateMultiplayerConfig(enna);check(true,"Stage 8 imported course allows daytime");}
         enna.night=1;enna.course=supportedCourseCount;rejected([&]{validateMultiplayerConfig(enna);});
     }
     Idas3MultiplayerConfig c{40,1,3,0,0,0,0,8,0,1};

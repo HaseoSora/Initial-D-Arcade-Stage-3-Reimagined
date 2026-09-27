@@ -29,7 +29,8 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
     public int PairedTreeTriangles {get;private set;}
     public int PairedRoadsideTriangles {get;private set;}
     public string LoadedCourse {get;private set;}
-    public static string CourseName(uint flags)=>(flags&524288u)!=0?"SADAMINE":"HAKONE";
+    public static int CourseId(uint flags)=>(flags&16777216u)!=0?15:(flags&524288u)!=0?10:9;
+    public static string CourseName(uint flags)=>Idas3CourseCatalog.Packs[CourseId(flags)-9];
     public static string Variant(uint flags) => ((flags&65536u)!=0?"night":"day")+((flags&131072u)!=0?"_wet":"_dry");
     void Start() {
         try {
@@ -113,7 +114,7 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
         for(int i=0;i<materials.Length;i++) {
             var s=data.materials[i]; var m=new Material(shader){name=s.name}; materials[i]=m;
             m.EnableKeyword("IDAS_IMPORTED_COURSE");
-            m.SetFloat("_ImportedSponsorSigns",IsSponsorMaterial(LoadedCourse,s.name)?1:0);
+            m.SetFloat("_ImportedSponsorSigns",(LoadedCourse=="TSUBAKI"?IsTsubakiSignAtlas(s):IsSponsorMaterial(LoadedCourse,s.name))?1:0);
             // Repeated cutout trees share meshes/materials. Instance their
             // world transforms; blended road shadows retain their draw order.
             m.enableInstancing=s.kind=="tree"&&Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-imported-instancing-off")<0;
@@ -145,12 +146,14 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
                 }
                 int[] indices=new int[nt]; for(int i=0;i<nt;i++) { indices[i]=r.ReadInt32(); if(indices[i]<0||indices[i]>=nv) throw new InvalidDataException("Vertex index"); }
                 Vector2[] treeFaces=null;
-                // The atlas also contains ordinary scenery: tag only sponsor
-                // logo triangles for readable lettering on both panel faces.
-                if(IsSponsorMaterial(LoadedCourse,data.materials[mat].name))
-                    treeFaces=SponsorFaceTags(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices,LoadedCourse=="SADAMINE"&&Path.GetFileName(root)=="night_wet"?.25f:0,LoadedCourse=="HAKONE");
+                // Keep text correction inside its own atlas tiles; ordinary
+                // road, rock and foliage sharing the atlas retain their UVs.
+                if(LoadedCourse=="TSUBAKI"&&IsTsubakiSignAtlas(data.materials[mat]))
+                    treeFaces=TsubakiSignFaceTags(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices);
+                else if(IsSponsorMaterial(LoadedCourse,data.materials[mat].name))
+                    treeFaces=SponsorFaceTags(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices,LoadedCourse=="SADAMINE"&&Path.GetFileName(root)=="night_wet"?.25f:0,LoadedCourse=="HAKONE",LoadedCourse=="TSUBAKI"?4:0);
                 if(UsesPairedFoliageFaces(LoadedCourse,data.materials[mat])&&(!roadsideBaseline||data.materials[mat].kind=="tree")){
-                    treeFaces=PrepareTreeFaces(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices,out int paired);
+                    treeFaces=PrepareSceneryFaces(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices,treeFaces,out int paired);
                     if(data.materials[mat].kind=="tree")PairedTreeTriangles+=paired;
                     else PairedRoadsideTriangles+=paired;
                 }
@@ -185,6 +188,10 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
         Debug.Log("HAKONE scenery placements: "+scenery.Count);
     }
     internal static int SceneryDirection(string course,string material){
+        if(course=="TSUBAKI"){
+            if(material.StartsWith("downhill_",StringComparison.Ordinal))return -1;
+            if(material.StartsWith("hillclimb_",StringComparison.Ordinal))return 1;
+        }
         if(course=="SADAMINE"){
             if(material=="downhill_Cmn_Fence_Mat2"||material=="downhill_gate_checkpoint2"||material=="downhill_gate_lamplight2")return -1;
             if(material=="hillclimb_Cmn_Fence_Mat3"||material=="hillclimb_gate_checkpoint1"||material=="hillclimb_gate_lamplight1")return 1;
@@ -209,15 +216,19 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
             m.SetVector("_ImportedFogRange",new Vector4(85,1/Mathf.Max(.00001f,profile.distanceScale),0,0));
         }
     }
-    internal static bool IsSponsorMaterial(string course,string material)=>course=="SADAMINE"?material=="makersign_daydry":course=="HAKONE"&&(material=="makersign_O_barricade_panel_mat3"||material=="makersign_sign"||material=="makersign_adboard"||material=="makersign_O_barricade_panel");
-    internal static Vector2[] SponsorFaceTags(ref Vector3[] vertices,ref Vector3[] normals,ref Vector2[] uv,ref Vector2[] uv2,ref Color32[] colors,ref int[] indices,float atlasOffset,bool rotated=false){
+    internal static bool IsSponsorMaterial(string course,string material)=>course=="TSUBAKI"?
+        material=="makersign_all"||material=="makersign_O_barricade_panel"||material=="O_barricade_panel"||
+        material=="downhill_O_barricade_panel1"||material=="hillclimb_O_barricade_panel2"||material=="E_grail_ref_w6":
+        course=="SADAMINE"?material=="makersign_daydry":course=="HAKONE"&&(material=="makersign_O_barricade_panel_mat3"||material=="makersign_sign"||material=="makersign_adboard"||material=="makersign_O_barricade_panel");
+    internal static Vector2[] SponsorFaceTags(ref Vector3[] vertices,ref Vector3[] normals,ref Vector2[] uv,ref Vector2[] uv2,ref Color32[] colors,ref int[] indices,float atlasOffset,bool rotated=false,float atlasColumns=0){
         var points=new List<Vector3>(vertices);var ns=new List<Vector3>(normals);
         var ts=new List<Vector2>(uv);var ts2=new List<Vector2>(uv2);var cs=new List<Color32>(colors);
         var tags=new List<Vector2>(new Vector2[vertices.Length]);
         var copies=new Dictionary<(int,int),int>();
         for(int i=0;i<indices.Length;i+=3){
             var a=uv[indices[i]];var b=uv[indices[i+1]];var c=uv[indices[i+2]];
-            float columns=rotated?16:8,rows=rotated?4:16;
+            // Tsubaki uses the same seven-logo layout with quarter-width cells.
+            float columns=atlasColumns>0?atlasColumns:rotated?16:8,rows=rotated?4:16;
             int column=Mathf.FloorToInt(((a.x+b.x+c.x)/3-atlasOffset)*columns),row=Mathf.FloorToInt((a.y+b.y+c.y)/3*rows);
             if(column<0||column>(rotated?6:1)||row<0||row>(rotated?0:3)||(!rotated&&column==1&&row==3))continue;
             float left=atlasOffset+column/columns,right=atlasOffset+(column+1)/columns,top=row/rows,bottom=(row+1)/rows;
@@ -249,8 +260,21 @@ public sealed partial class Idas8HakoneCourse : MonoBehaviour
         side=1<<(swaps&1);return (a,b,c);
     }
     internal static bool UsesPairedFoliageFaces(string course,Surface surface)=>surface.kind=="tree"||
+        // Tsubaki also authors opposite faces on terrain, barriers, guardrails
+        // and roadside cards. Many backs use different UVs or baked colors;
+        // drawing both sides together produces holes and depth flicker.
+        course=="TSUBAKI"&&(surface.kind=="crs_a"||surface.kind=="crs_m")&&!surface.shadow&&!surface.sky||
         course=="SADAMINE"&&surface.cutoff>0&&(surface.name.StartsWith("bush_",StringComparison.Ordinal)||
         surface.name.StartsWith("forest_",StringComparison.Ordinal)||surface.name=="sakura_main"||surface.name=="corner_grass_b");
+    internal static Vector2[] PrepareSceneryFaces(ref Vector3[] vertices,ref Vector3[] normals,ref Vector2[] uv,ref Vector2[] uv2,ref Color32[] colors,ref int[] indices,Vector2[] textTags,out int paired){
+        var textIndices=textTags==null?null:(int[])indices.Clone();
+        var faces=PrepareTreeFaces(ref vertices,ref normals,ref uv,ref uv2,ref colors,ref indices,out paired);
+        if(faces==null)return textTags;
+        // PrepareTreeFaces splits vertices per triangle. Preserve the separate
+        // sign-reflection axis through that split, including rotated notices.
+        if(textTags!=null)for(int i=0;i<faces.Length;++i)faces[i].y=textTags[textIndices[i]].y;
+        return faces;
+    }
     internal static Vector2[] PrepareTreeFaces(ref Vector3[] vertices,ref Vector3[] normals,ref Vector2[] uv,ref Vector2[] uv2,ref Color32[] colors,ref int[] indices,out int paired){
         var keys=new (Vector3,Vector3,Vector3)[indices.Length/3];
         var sides=new Dictionary<(Vector3,Vector3,Vector3),int>();

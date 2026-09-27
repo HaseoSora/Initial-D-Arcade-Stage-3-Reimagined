@@ -405,12 +405,12 @@ public sealed class Idas3AttractOptionsSmoke : MonoBehaviour
     }
     private IEnumerator HudCatalogPickerRegression(){
         int count=Idas3ArcadeMeterCatalog.Count;
-        Check(count==88,"Meter picker contains Original plus all 87 recovered meters");
+        Check(count==114,"Meter picker contains Original plus all 113 recovered meters");
         var seen=new HashSet<int>();
         for(int index=0;index<count;++index)Check(seen.Add(Idas3ArcadeMeterCatalog.StyleAt(index)),"Meter picker saved IDs are unique");
-        const int analogStyle=3,characterStyle=51;
+        const int analogStyle=3,characterStyle=100;
         int lastStyle=Idas3ArcadeMeterCatalog.StyleAt(count-1);
-        Check(lastStyle==91&&Idas3ArcadeMeterCatalog.SourceId(lastStyle)==89,"Last picker entry retains recovered source ID 89");
+        Check(lastStyle==119&&Idas3ArcadeMeterCatalog.SourceId(lastStyle)==117,"Last picker entry retains recovered source ID 117");
         menu.Activate();yield return Frames(2);menu.Activate();
         var customization=menu.HudCustomization;
         Check(customization.PickerOpen&&customization.PickerIndex==1&&customization.PickerScroll==0,"Picker opens on saved Stuttgart within the initial rows");
@@ -440,7 +440,7 @@ public sealed class Idas3AttractOptionsSmoke : MonoBehaviour
         menu.Activate();yield return Frames(2);menu.Activate();yield return BrowseHudPickerTo(1);menu.Activate();
         SelectHudCustomizationRow(6);menu.Activate();yield return Frames(3);
         Check(options.Current.hudMeterStyle==1&&options.Current.hudNameplateStyle==1,"Picker restores Stuttgart for existing layout and live telemetry checks");
-        observations.Add("Actual OnGUI catalog picker: 88 unique styles, initial/scrolled/final rows, Infinity and Reimu previews, high style91 Apply/reload, wrap to Original, Cancel preservation, Stuttgart restored.");
+        observations.Add("Actual OnGUI catalog picker: 114 unique styles, initial/scrolled/final rows, Infinity and Season 5 Chibi previews, high style119 Apply/reload, wrap to Original, Cancel preservation, Stuttgart restored.");
     }
     private IEnumerator BrowseOrnamentPickerTo(int id){
         var customization=menu.HudCustomization;
@@ -453,7 +453,7 @@ public sealed class Idas3AttractOptionsSmoke : MonoBehaviour
     }
     private IEnumerator OrnamentPickerRegression(){
         int count=Idas3OrnamentCatalog.Count,firstId=Idas3OrnamentCatalog.IdAt(1),lastId=Idas3OrnamentCatalog.IdAt(count-1);
-        Check(count==281&&Idas3OrnamentCatalog.IdAt(0)==0,"Ornament picker contains Off and all 280 recovered models");
+        Check(count==315&&Idas3OrnamentCatalog.IdAt(0)==0,"Ornament picker contains Off and all 314 recovered models");
         Check(options.Current.hudOrnamentId==0&&!Idas3OrnamentRenderer.PreviewLoaded,"Ornaments are opt-in with no idle preview renderer");
         menu.Activate();menu.NavigateHorizontal(-1);menu.Navigate(1);menu.Activate();
         var customization=menu.HudCustomization;
@@ -487,7 +487,7 @@ public sealed class Idas3AttractOptionsSmoke : MonoBehaviour
         menu.Activate();menu.NavigateHorizontal(1);for(int row=0;row<4;++row)menu.Navigate(1);menu.Activate();
         yield return BrowseOrnamentPickerTo(firstId);menu.Activate();SelectHudCustomizationRow(6);menu.Activate();yield return Frames(3);
         Check(options.Current.hudMeterStyle==1&&options.Current.hudNameplateStyle==1&&options.Current.hudOrnamentId==firstId,"Ornament selection preserves meter options and restores Stuttgart for live checks");
-        observations.Add("Actual OnGUI ornament picker: 281 entries including Off, initial/scrolled/final screenshots, AE86 recovered model preview, Original HUD compatibility, high-ID Apply/reload, Off resource release, Cancel preservation and first ornament selected for live driving.");
+        observations.Add("Actual OnGUI ornament picker: 315 entries including Off, initial/scrolled/final screenshots, AE86 recovered model preview, Original HUD compatibility, high-ID Apply/reload, Off resource release, Cancel preservation and first ornament selected for live driving.");
     }
     private IEnumerator HudPlacementRegression(){
         var baseline=options.Current.Clone();string saved=File.ReadAllText(options.FilePath);
@@ -693,7 +693,7 @@ public sealed class Idas3AttractOptionsSmoke : MonoBehaviour
         Check(!float.IsNaN(telemetry.rpm)&&telemetry.rpm>=0&&Mathf.Abs(telemetry.speedKmh-host.Status.speedMetresPerSecond*3.6f)<5&&Mathf.Abs(telemetry.rpm-host.Status.rpm)<2500,"Interpolated speed and RPM remain close to live simulation, including gear changes");
         yield return SceneCapture("stuttgart-live-race");
         yield return OrnamentLiveRegression(ui);
-        foreach(int style in new[]{3,51}){
+        foreach(int style in new[]{3,51,94,100,106,112,114,119}){
             options.BeginEdit();options.Draft.hudMeterStyle=style;Check(options.ApplyDraft(),"Imported meter can be selected during a live race");yield return Frames(3);
             bool importedLive=Idas3ArcadeHud.Read(out var importedTelemetry);
             Check(ui.ArcadeMeterVisible&&importedLive&&(importedTelemetry.flags&1)!=0&&importedTelemetry.throttle>.5f,"Imported meter uses active native race telemetry");
@@ -701,8 +701,15 @@ public sealed class Idas3AttractOptionsSmoke : MonoBehaviour
             // exact endpoint/bounds equivalence is checked by the native live
             // regression; this verifies catalog changes retain live sampling.
             Check(!float.IsNaN(importedTelemetry.rpm)&&importedTelemetry.rpm>=0&&Mathf.Abs(importedTelemetry.speedKmh-host.Status.speedMetresPerSecond*3.6f)<5&&Mathf.Abs(importedTelemetry.rpm-host.Status.rpm)<2500,"Imported meter interpolation stays close to the live vehicle after changing style");
-            yield return SceneCapture(style==3?"imported-live-race-infinity":"imported-live-race-reimu");
+            yield return SceneCapture(style==3?"imported-live-race-infinity":style==51?"imported-live-race-reimu":"season5-live-source-"+(style-2));
         }
+        foreach(int ornament in new[]{45,271,775,1117}){
+            options.BeginEdit();options.Draft.hudOrnamentId=ornament;Check(options.ApplyDraft(),"Season 5 ornament applies during a live race");yield return Frames(4);
+            Check(ui.OrnamentVisible&&ui.OrnamentRenderer.SelectedId==ornament,"Season 5 ornament selection reaches the live renderer");
+            CheckOrnamentRenderPixels(ui.OrnamentRenderer);yield return SceneCapture("season5-live-ornament-"+ornament);
+        }
+        options.BeginEdit();options.Draft.hudOrnamentId=0;Check(options.ApplyDraft(),"Season 5 ornaments release after live selection");yield return Frames(3);
+        Check(!ui.OrnamentVisible&&Idas3OrnamentRenderer.ResidentTextureCount==0,"Season 5 support textures release with their models");
         options.BeginEdit();options.Draft.hudMeterStyle=1;Check(options.ApplyDraft(),"Stuttgart is restored after imported live examples");yield return Frames(2);heldAccelerator=false;
         options.BeginEdit();options.Draft.hudShiftLights=false;options.Draft.hudPedalIndicators=false;options.Draft.hudNameplateStyle=0;Check(options.ApplyDraft(),"Optional indicators can be disabled");yield return Frames(2);
         yield return SceneCapture("stuttgart-minimal-race");
@@ -964,7 +971,7 @@ public sealed class Idas3AttractOptionsSmoke : MonoBehaviour
             checks=checks,seconds=Time.realtimeSinceStartupAsDouble-began,finalFrontendStage=finalStage,options=options.Current,
             captures=captures.ToArray(),captureDimensions=captureDimensions.ToArray(),observations=observations.ToArray(),scope=ReportsCheck?"Private-save native/Unity regression: repeated synthetic controller Start, race pause/resume with continuously held keyboard/trigger/rebound A acceleration and steering, original live TA HUD capture, controlled-position finish gates and natural timeout; physical controllers not tested.":"Actual original attract frontend and managed options with private saves. Prompt captures request 640x480, 1024x768, 1280x720 and 1920x800 and report actual dimensions before restoring 1200x720. Synthetic physical keyboard/controller input traverses normal bindings and hold routing, including remapped confirm-button conflict and focus interruption. Apply, Back and persistence use normal options owners. Captures use actual OnGUI Repaint; no guest runtime, race fixture, native pause, or hardware force output."};
         if(PointerCheck)report.scope="Actual Unity settings, local lobby, and music chooser; real OS mouse clicks while a synthetic connected controller highlights a different control. Private saves; no physical controller hardware validation.";
-        if(HudCustomizationCheck)report.scope="Standalone player with private saves: actual OnGUI 88-meter and 281-entry ornament pickers, initial/scrolled/final rows, recovered artwork/3D preview pixel checks, high-ID Apply/reload and Cancel, Original HUD compatibility, Stuttgart layout move/resize, small/ultrawide captures, and live native quick-race telemetry. Actual ornament mesh parts, transparent render target, screen-top bounds, movement-responsive swing, and Off resource release are checked. Programmatic normal menu navigation and synthetic keyboard driving; no physical controller or every-car validation.";
+        if(HudCustomizationCheck)report.scope="Standalone player with private saves: actual OnGUI "+Idas3ArcadeMeterCatalog.Count+"-entry meter and "+Idas3OrnamentCatalog.Count+"-entry ornament pickers, initial/scrolled/final rows, recovered artwork/3D preview pixel checks, high-ID Apply/reload and Cancel, Original HUD compatibility, Stuttgart layout move/resize, small/ultrawide captures, and live native quick-race telemetry including Season 5 meters and ornaments. Actual ornament mesh parts, transparent render target, screen-top bounds, movement-responsive swing, and Off resource release are checked. Programmatic normal menu navigation and synthetic keyboard driving; no physical controller or every-car validation.";
         if(HudEdgePlacementCheck)report.scope="Hidden standalone Unity player with private saves: actual HUD editor and composed Youmu bounds, edge placement in both directions, visible reachability, movement back from edges and Cancel preservation. No OnGUI pixel capture or OS mouse input.";
         if(OptionsExitCheck)report.scope="Actual Unity host with private saves and injected keyboard/controller input: attract options apply/close with held axis, keyboard Start, race options apply/back/resume with held throttle/steering, and music visibility close callback. No physical wheel or menu pixel verification.";
         if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-discord-check")>=0)report.scope="Discord activity state mapping, native snapshot, UTF8 limits, replay descriptions, settings persistence and controller navigation; actual Gameplay captures at 640x480 and 1280x720. Optional live flag checks Discord READY and activity acknowledgement from this Unity player.";

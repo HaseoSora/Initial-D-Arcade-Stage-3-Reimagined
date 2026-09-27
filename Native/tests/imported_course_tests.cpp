@@ -6,7 +6,7 @@ void require(bool ok,const char* text){if(!ok)throw std::runtime_error(text);}
 int main(int argc,char** argv)try{
     if(argc!=3)throw std::runtime_error("native_root imported_root");
     const auto course=ImportedCourse::load(argv[2]);int surfaces=0,ticks=0;
-    require(course.lamps.size()==(course.id==10?16:46),"Hakone authored lamps were not loaded");
+    require(course.id==15?!course.lamps.empty():course.lamps.size()==(course.id==10?16:46),"Imported authored lamps were not loaded");
     // Query the converted road along its full length with the actual D3 solver.
     for(unsigned i=course.checkpoints[0];i<=unsigned(course.checkpoints[4]);i++){
         OriginalCollisionQuery q;clearOriginalCollisionQuery(q);auto p=course.center[i];
@@ -26,7 +26,7 @@ int main(int argc,char** argv)try{
         q.setf(44,wall[0]-dx);q.setf(48,wall[1]+1);q.setf(52,wall[2]-dz);
         q.setf(32,wall[0]+dx*outside);q.setf(36,wall[1]+1);q.setf(40,wall[2]+dz*outside);
         OriginalTriangleSearchTrace trace;OriginalSurfaceScratch scratch;
-        if(!queryOriginalCollisionSwept(course.collision,q,trace,scratch)||!(q.u(28)&0x8000))throw std::runtime_error("Missed imported wall at point "+std::to_string(i)+" side "+std::to_string(side));
+        if(!queryOriginalCollisionSwept(course.collision,q,trace,scratch)||!(q.u(28)&0x8000))throw std::runtime_error("Missed imported wall at point "+std::to_string(i)+" side "+std::to_string(side)+" outside "+std::to_string(outside)+" triangle "+std::to_string(q.u(60))+" flags "+std::to_string(q.u(28)));
         require(std::isfinite(q.f(24))&&std::abs(q.f(0)*q.f(0)+q.f(8)*q.f(8)-1)<.001f,"Invalid imported wall contact");++wallSweeps;
     }
     std::cout<<"PASS "<<wallSweeps<<" whole-route outward wall sweeps\n";
@@ -59,7 +59,7 @@ int main(int argc,char** argv)try{
             for(int t=0;t<180;t++){
                 auto e=session.tick(adaptOriginalHostInput(input,{.8f,1,0,false,false},automatic,true,t));ticks++;contacts+=e.newImpactRecords.size();
                 const auto& v=session.vehicle().drive;auto p=course.source.project({v.f(0),v.f(4),v.f(8)});
-                require(std::abs(v.f(4)-p.sample.center.y)<5,"D3 car fell below imported road at boundary");
+                if(std::abs(v.f(4)-p.sample.center.y)>=5)throw std::runtime_error("D3 car height mismatch at boundary: tick="+std::to_string(t)+" position="+std::to_string(v.f(0))+","+std::to_string(v.f(4))+","+std::to_string(v.f(8))+" roadHeight="+std::to_string(p.sample.center.y)+" segment="+std::to_string(p.sample.segmentIndex));
             }
             require(contacts>0,"Imported boundary did not invoke D3 wall contact");
         }

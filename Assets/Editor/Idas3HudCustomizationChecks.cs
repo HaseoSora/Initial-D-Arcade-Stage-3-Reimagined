@@ -26,7 +26,7 @@ public static class Idas3HudCustomizationChecks
         Check(options.Current.hudMeterStyle==0&&options.Current.hudShiftLights&&options.Current.hudPedalIndicators&&options.Current.hudNameplateStyle==0&&options.Current.hudOrnamentId==0,"Legacy settings must keep original HUD and default Arcade options");
         Check(File.ReadAllText(file)==legacy,"Loading legacy settings rewrote the file");
         int count=Idas3ArcadeMeterCatalog.Count;
-        Check(count==88,"The picker must contain Original and all 87 imported meters");
+        Check(count==114,"The picker must contain Original and all 113 imported meters");
         Check(Idas3ArcadeMeterCatalog.StyleAt(0)==0&&Idas3ArcadeMeterCatalog.StyleAt(1)==1&&Idas3ArcadeMeterCatalog.SourceId(1)==31,"Original and the saved Stuttgart selection must retain their original IDs");
         var styles=new HashSet<int>();int previousSource=-1;
         for(int i=0;i<count;++i){
@@ -37,12 +37,12 @@ public static class Idas3HudCustomizationChecks
             var roundTrip=Idas3GameOptions.Normalize(JsonUtility.FromJson<Idas3GameOptions.Values>(JsonUtility.ToJson(new Idas3GameOptions.Values{hudMeterStyle=style})));
             Check(roundTrip.hudMeterStyle==style,"A valid meter ID was lost during JSON serialization or normalization: "+style);
         }
-        foreach(int invalid in new[]{-1,18,33,35,61,99}){
+        foreach(int invalid in new[]{-1,18,33,35,61,115,116,999}){
             var normalized=Idas3GameOptions.Normalize(new Idas3GameOptions.Values{hudMeterStyle=invalid,hudNameplateStyle=invalid});
             Check(normalized.hudMeterStyle==0&&normalized.hudNameplateStyle==0,"Unknown HUD styles must fall back to original/off");
         }
         int ornamentCount=Idas3OrnamentCatalog.Count;
-        Check(ornamentCount==281&&Idas3OrnamentCatalog.IdAt(0)==0,"The ornament picker must contain Off and all 280 recovered models");
+        Check(ornamentCount==315&&Idas3OrnamentCatalog.IdAt(0)==0,"The ornament picker must contain Off and all 314 recovered models");
         var ornamentIds=new HashSet<int>();
         for(int i=0;i<ornamentCount;++i){
             int id=Idas3OrnamentCatalog.IdAt(i);

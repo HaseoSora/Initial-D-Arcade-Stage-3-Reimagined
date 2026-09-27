@@ -32,12 +32,15 @@ int main(int argc,char** argv)try{
     require(energy(tires)>1e8,"Engine mute also muted tires");require(energy(silence)==0,"Both muted is not silent");
     require(capture(argv[1],1,1,true,true)==engine,"Tire slider did not affect queued audio");
     const auto half=capture(argv[1],0,.5f,true);require(std::abs(energy(half)/energy(tires)-.25)<.002,"Tire half-volume gain wrong");
+    const auto boostedTires=capture(argv[1],0,2,true),boostedEngine=capture(argv[1],2,0,true);
+    require(std::abs(energy(boostedTires)/energy(tires)-4)<.01,"200% tire gain is not twice the amplitude");
+    require(std::abs(energy(boostedEngine)/energy(engine)-4)<.01,"200% engine gain is not twice the amplitude");
     const auto together=capture(argv[1],1,1,true);
     for(std::size_t i=0;i<together.size();++i)require(std::abs(int(together[i])-int(engine[i])-int(tires[i]))<=2,"Separated channels do not reconstruct original mix");
     EngineAudio a;a.setOutputGains({.4f,.3f,.2f,.1f,.6f});
-    for(float bad:{-1.f,1.1f,std::numeric_limits<float>::quiet_NaN()}){
+    for(float bad:{-1.f,2.1f,std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::infinity()}){
         bool rejected=false;try{a.setOutputGains({1,1,1,1,bad});}catch(const std::invalid_argument&){rejected=true;}
         require(rejected&&a.outputGains().tires==.6f&&a.outputGains().engine==.2f,"Invalid gains changed active mix");
     }
-    std::cout<<"PASS engine/tire isolation, both-muted silence, half-volume amplitude, queued-volume changes, reconstructed original mix, invalid gain rejection\n";
+    std::cout<<"PASS engine/tire isolation, mute, half and 200% amplitude, queued-volume changes, reconstructed original mix, invalid gain rejection\n";
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

@@ -1,26 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 // The host supplies the original catalog, owns eligibility/input and commits
-// selections through native validation. This view never starts audio itself.
+// selections through native validation. Preview playback never commits a race choice.
 public sealed class Idas3RaceMusicMenu : MonoBehaviour
 {
     public struct Entry
     {
         public int id;
-        public string title,artist;
+        public string key,title,artist,collection,previewPath,coverPath,pcmPath;
+        public float duration;
+        public float[] waveform;
+        public int pcmRate,pcmChannels;
         public int stage;
     }
-    private const float Width=800,Height=592;
+    private const float Width=1120,Height=664;
     private const int VisibleRows=8;
     // Display order is independent of persisted/native category IDs.
-    private static readonly int[] StageIds={0,1,2,10,3,4,5,6,7,8,9};
-    private static readonly string[] StageLabels={"ALL","STAGE 1","STAGE 2","SPECIAL STAGE","STAGE 3","STAGE 4","STAGE 5","STAGE 6","STAGE 7","STAGE 8","CUSTOM"};
-    private static readonly Color Ink=new Color32(5,10,18,255),Panel=new Color32(13,24,35,255);
-    private static readonly Color Edge=new Color32(94,126,142,255),White=new Color32(245,245,238,255);
-    private static readonly Color Yellow=new Color32(255,221,44,255),Red=new Color32(188,13,13,255);
-    private static readonly Color Muted=new Color32(174,188,195,255),Blue=new Color32(28,67,91,255);
+    private static readonly int[] StageIds={0,1,2,10,3,4,5,6,7,8,11,9};
+    private static readonly string[] StageLabels={"All songs","Arcade Stage 1","Arcade Stage 2","Special Stage","Arcade Stage 3","Arcade Stage 4","Arcade Stage 5","Arcade Stage 6","Arcade Stage 7","Arcade Stage 8","The Arcade · S5","Custom music"};
+    private static readonly Color Ink=new Color32(11,12,15,255),Panel=new Color32(22,24,29,255);
+    private static readonly Color Edge=new Color32(54,57,65,255),White=new Color32(245,245,248,255);
+    private static readonly Color Yellow=new Color32(246,98,109,255),Red=new Color32(222,31,52,255);
+    private static readonly Color Muted=new Color32(154,159,170,255),Blue=new Color32(46,30,37,255);
     private Entry[] entries=Array.Empty<Entry>();
     private readonly List<int> visible=new List<int>();
     private int selectedId=-1,selection,firstRow,stageFilter,blockThroughFrame=-1;
@@ -33,8 +37,32 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
     private float holdProgress;
     private string viewChangeLabel="VIEW CHANGE",notice="";
     private GUIStyle titleStyle,label,small,artistStyle,button,stageButton,numberStyle,confirmationStyle,songStyle;
+    private GUIStyle searchStyle;
+    private Font uiFont;
+    private string query="",collectionFilter="",preferencesPath;
+    private bool favoritesOnly,sortByTitle,clearSearchFocus;
+    private readonly HashSet<string> favorites=new HashSet<string>();
+    private readonly Dictionary<string,Texture2D> covers=new Dictionary<string,Texture2D>();
+    [Serializable] private sealed class Preferences {public string[] favorites;public float volume=.7f;}
+    private Idas3MusicPreview preview;
+    internal Idas3MusicPreview Preview=>preview;
+    internal bool SearchFocused {get;private set;}
+    internal string SearchQuery=>query;
+    internal void BlurSearch(){clearSearchFocus=true;SearchFocused=false;}
+    internal void Search(string value){query=value??"";RebuildList(false);}
+    internal void ConfigurePlayer(string saveRoot)
+    {
+        var child=new GameObject("Sound Room Preview");child.transform.SetParent(transform,false);preview=child.AddComponent<Idas3MusicPreview>();
+        preferencesPath=Path.Combine(saveRoot,"sound-room.json");
+        try{if(File.Exists(preferencesPath)&&new FileInfo(preferencesPath).Length<128*1024){var p=JsonUtility.FromJson<Preferences>(File.ReadAllText(preferencesPath));if(p!=null){preview.Gain=float.IsNaN(p.volume)||float.IsInfinity(p.volume)?.7f:Mathf.Clamp(p.volume,0,Idas3GameOptions.MaximumVolume);if(p.favorites!=null)foreach(var key in p.favorites)if(!string.IsNullOrEmpty(key))favorites.Add(key);}}}catch(Exception){SetNotice("Sound Room preferences could not be loaded.");}
+    }
+    private void SavePreferences(){if(preferencesPath==null)return;try{var data=new Preferences{favorites=new List<string>(favorites).ToArray(),volume=preview.Gain};var temp=preferencesPath+".tmp";File.WriteAllText(temp,JsonUtility.ToJson(data));if(File.Exists(preferencesPath))File.Replace(temp,preferencesPath,null);else File.Move(temp,preferencesPath);}catch(Exception){SetNotice("Sound Room preferences could not be saved.");}}
+    internal void TogglePreview(){if(!IsOpen||Busy||DeleteConfirmationOpen||visible.Count==0||preview==null)return;preview.Toggle(entries[visible[selection]]);}
+    internal void StopPreview(){if(preview!=null)preview.Stop();}
+    internal void ToggleFavorite(){if(visible.Count==0)return;var e=entries[visible[selection]];if(e.id<0||string.IsNullOrEmpty(e.key))return;if(!favorites.Add(e.key))favorites.Remove(e.key);SavePreferences();if(favoritesOnly)RebuildList(false);}
     private RenderTexture diagnosticTarget;
     public bool IsOpen {get;private set;}
+    internal int OpenVersion {get;private set;}
     public bool Busy {get;set;}
     public bool DeleteConfirmationOpen=>deleteId>=1000;
     public bool DeleteYesSelected=>DeleteConfirmationOpen&&deleteYes;
@@ -79,12 +107,12 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
     {
         if(open==IsOpen)return;
         if(open&&entries.Length==0)return;
-        blockThroughFrame=Time.frameCount+1;IsOpen=open;notice="";CancelDelete();
+        ++OpenVersion;blockThroughFrame=Time.frameCount+1;IsOpen=open;notice="";CancelDelete();
         if(open){
             previousCursorVisible=Cursor.visible;previousCursorLock=Cursor.lockState;
             Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
-            stageFilter=0;RebuildList(true);
-        }else{Cursor.lockState=previousCursorLock;Cursor.visible=previousCursorVisible;}
+            stageFilter=0;query="";collectionFilter="";favoritesOnly=false;BlurSearch();RebuildList(true);
+        }else{StopPreview();SavePreferences();BlurSearch();Cursor.lockState=previousCursorLock;Cursor.visible=previousCursorVisible;}
         OpenChanged?.Invoke(open);
     }
     public void Navigate(int delta)
@@ -92,7 +120,7 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
         if(!IsOpen||Busy||delta==0)return;
         if(DeleteConfirmationOpen){deleteYes=!deleteYes;return;}
         if(visible.Count==0)return;
-        selection=Wrap(selection+Math.Sign(delta),visible.Count);EnsureVisible();notice="";
+        StopPreview();selection=Wrap(selection+Math.Sign(delta),visible.Count);EnsureVisible();notice="";
     }
     public void NavigateHorizontal(int stageDelta)
     {
@@ -115,24 +143,29 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
         }
         if(visible.Count==0)return;
         // The host closes only after its native selection setter succeeds.
-        Selected?.Invoke(entries[visible[selection]].id);
+        StopPreview();Selected?.Invoke(entries[visible[selection]].id);
     }
     public void RequestDelete(){
-        if(!IsOpen||Busy||DeleteConfirmationOpen||HighlightedTrackId<1000)return;
+        if(!IsOpen||Busy||DeleteConfirmationOpen||HighlightedTrackId<1000||HighlightedTrackId>=2000)return;
+        StopPreview();
         deleteId=HighlightedTrackId;deleteTitle=entries[visible[selection]].title;deleteYes=false;
     }
     private void CancelDelete(){deleteId=-1;deleteYes=false;deleteTitle="";}
-    public void Back(){if(DeleteConfirmationOpen)CancelDelete();else if(IsOpen)SetOpen(false);}
+    public void Back(){if(DeleteConfirmationOpen)CancelDelete();else if(SearchFocused)BlurSearch();else if(IsOpen)SetOpen(false);}
     private static int Wrap(int value,int count)=>(value%count+count)%count;
     private void ChangeStage(int stage)
     {
-        if(stage==stageFilter)return;
-        stageFilter=stage;RebuildList(true);notice="";
+        if(stage==stageFilter&&!favoritesOnly&&collectionFilter.Length==0)return;
+        StopPreview();stageFilter=stage;favoritesOnly=false;collectionFilter="";RebuildList(true);notice="";
     }
     private void RebuildList(bool preferCurrent)
     {
-        visible.Clear();
-        for(int i=0;i<entries.Length;++i)if(stageFilter==0||entries[i].stage==stageFilter)visible.Add(i);
+        StopPreview();visible.Clear();
+        for(int i=0;i<entries.Length;++i){var e=entries[i];if((stageFilter==0||e.stage==stageFilter)&&
+            (!favoritesOnly||(!string.IsNullOrEmpty(e.key)&&favorites.Contains(e.key)))&&
+            (collectionFilter.Length==0||e.collection==collectionFilter)&&
+            (query.Length==0||(e.title+" "+e.artist+" "+e.collection).IndexOf(query,StringComparison.OrdinalIgnoreCase)>=0))visible.Add(i);}
+        if(sortByTitle)visible.Sort((a,b)=>string.Compare(entries[a].title,entries[b].title,StringComparison.CurrentCultureIgnoreCase));
         selection=0;firstRow=0;
         if(preferCurrent)for(int i=0;i<visible.Count;++i)if(entries[visible[i]].id==selectedId){selection=i;break;}
         EnsureVisible();
@@ -145,6 +178,8 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
     }
     private void OnDestroy()
     {
+        StopPreview();foreach(var cover in covers.Values)if(cover!=null)Destroy(cover);
+        if(uiFont!=null)Destroy(uiFont);
         if(IsOpen){Cursor.lockState=previousCursorLock;Cursor.visible=previousCursorVisible;}
     }
     public void RequestDiagnosticCapture(RenderTexture target)
@@ -156,7 +191,8 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
     private void Styles()
     {
         if(label!=null)return;
-        label=new GUIStyle(GUI.skin.label){fontSize=18,padding=new RectOffset(0,0,0,0),clipping=TextClipping.Clip};label.normal.textColor=White;
+        uiFont=Font.CreateDynamicFontFromOSFont(new[]{"Segoe UI","Yu Gothic UI","Noto Sans CJK JP","Arial","DejaVu Sans"},18);
+        label=new GUIStyle(GUI.skin.label){font=uiFont,fontSize=18,padding=new RectOffset(0,0,0,0),clipping=TextClipping.Clip};label.normal.textColor=White;
         small=new GUIStyle(label){fontSize=12};artistStyle=new GUIStyle(label){fontSize=13};
         titleStyle=new GUIStyle(label){fontSize=35,fontStyle=FontStyle.BoldAndItalic};
         button=new GUIStyle(label){fontSize=15,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter};
@@ -164,6 +200,7 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
         numberStyle=new GUIStyle(label){fontSize=12,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter};
         confirmationStyle=new GUIStyle(label){fontSize=26,fontStyle=FontStyle.Bold};
         songStyle=new GUIStyle(label){fontSize=17,wordWrap=true};
+        searchStyle=new GUIStyle(GUI.skin.textField){font=uiFont,fontSize=16,padding=new RectOffset(10,10,7,7)};
     }
     private static void Fill(Rect rect,Color color)
     {
@@ -181,8 +218,8 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
     private bool Button(Rect rect,string text,bool active=false,GUIStyle style=null)
     {
         bool enabled=GUI.enabled,hover=enabled&&rect.Contains(Event.current.mousePosition);
-        Fill(rect,active&&enabled?Yellow:hover?Blue:Panel);Frame(rect,active&&enabled?Yellow:Edge);
-        Text(rect,text,style??button,!enabled?Muted:active?Ink:White);return GUI.Button(rect,GUIContent.none,GUIStyle.none);
+        Fill(rect,active&&enabled?Red:hover?Blue:Panel);Frame(rect,active&&enabled?Red:Edge);
+        Text(rect,text,style??button,!enabled?Muted:White);return GUI.Button(rect,GUIContent.none,GUIStyle.none);
     }
     private static Rect SafeRect()
     {
@@ -193,7 +230,6 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
     private void OnGUI()
     {
         if(entries.Length==0||(!IsOpen&&!showHint))return;
-        if(IsOpen&&(Event.current.type==EventType.KeyDown||Event.current.type==EventType.KeyUp))Event.current.Use();
         // Depth belongs to this GUI behaviour. Restoring it would reset the
         // component's sorting order and let the lobby cover the picker.
         Styles();var beforeMatrix=GUI.matrix;GUI.depth=-12500;
@@ -203,6 +239,7 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
         if(diagnostic){RenderTexture.active=diagnosticTarget;GL.PushMatrix();GL.LoadPixelMatrix(0,Screen.width,Screen.height,0);}
         try{
             if(IsOpen)DrawPicker();else DrawHint();
+            if(IsOpen&&(Event.current.type==EventType.KeyDown||Event.current.type==EventType.KeyUp))Event.current.Use();
         }finally{
             GUI.matrix=beforeMatrix;
             if(diagnostic){GL.PopMatrix();RenderTexture.active=beforeTarget;diagnosticTarget=null;DiagnosticCaptureReady=true;}
@@ -220,72 +257,123 @@ public sealed class Idas3RaceMusicMenu : MonoBehaviour
     }
     private void DrawPicker()
     {
-        var safe=SafeRect();float scale=Mathf.Min(1.5f,Mathf.Min(safe.width/(Width+48),safe.height/(Height+48)));
-        Fill(new Rect(0,0,Screen.width,Screen.height),new Color(0,0,0,.68f));
+        var safe=SafeRect();float scale=Mathf.Min(1.5f,Mathf.Min(safe.width/(Width+40),safe.height/(Height+40)));
+        Fill(new Rect(0,0,Screen.width,Screen.height),new Color(0,0,0,.75f));
         GUI.matrix=Matrix4x4.TRS(new Vector3(safe.x+(safe.width-Width*scale)*.5f,safe.y+(safe.height-Height*scale)*.5f,0),Quaternion.identity,new Vector3(scale,scale,1));
-        Fill(new Rect(0,0,Width,Height),Ink);Frame(new Rect(0,0,Width,Height),White);
-        // Slanted white/red header treatment follows the opponent screen.
-        Fill(new Rect(1,1,Width-2,66),Red);
-        for(int i=0;i<18;++i)Fill(new Rect(Width-136+i*3,66+i,135-i*3,1),Red);
-        Fill(new Rect(0,66,Width-136,2),White);
-        Text(new Rect(25,9,590,48),"Select BGM",titleStyle);
-        Text(new Rect(596,24,175,24),"RACE MUSIC",button,Yellow);
-        bool beforeEnabled=GUI.enabled;GUI.enabled=beforeEnabled&&!Busy&&!DeleteConfirmationOpen;
-        float tabWidth=(Width-44-4*(StageLabels.Length-1))/(StageLabels.Length+.8f),tabX=22;
+        Fill(new Rect(0,0,Width,Height),Ink);Frame(new Rect(0,0,Width,Height),Edge);Fill(new Rect(0,0,Width,4),Red);
+        Text(new Rect(26,17,500,48),"SOUND ROOM",titleStyle);
+        Text(new Rect(28,64,650,20),"RACE MUSIC",small,Muted);
+        if(clearSearchFocus){GUI.FocusControl(null);clearSearchFocus=false;}
+        bool beforeEnabled=GUI.enabled;GUI.enabled=beforeEnabled&&!DeleteConfirmationOpen;
+        if(Button(new Rect(1054,24,40,36),"×"))SetOpen(false);
+        GUI.enabled=beforeEnabled&&!Busy&&!DeleteConfirmationOpen;
+        Fill(new Rect(24,96,1072,1),Edge);
+        Text(new Rect(28,110,166,20),"LIBRARY",small,Muted);
         DiagnosticStageLabelsFit=true;
-        for(int i=0;i<StageLabels.Length;++i){
-            var rect=new Rect(tabX,91,tabWidth*(StageIds[i]==10?1.8f:1),32);tabX=rect.xMax+4;
-            var content=new GUIContent(StageLabels[i]);stageButton.fontSize=14;
-            while(stageButton.fontSize>10&&stageButton.CalcSize(content).x>rect.width-10)--stageButton.fontSize;
-            var measured=stageButton.CalcSize(content);
-            DiagnosticStageLabelsFit&=measured.x<=rect.width-10&&measured.y<=rect.height&&rect.xMin>=22&&rect.xMax<=Width-21.9f;
-            if(Button(rect,StageLabels[i],stageFilter==StageIds[i],stageButton))ChangeStage(StageIds[i]);
+        for(int i=0;i<StageIds.Length;++i){
+            var rect=new Rect(24,141+i*31,172,29);bool active=stageFilter==StageIds[i]&&!favoritesOnly;
+            Fill(rect,active?Panel:Ink);if(active)Fill(new Rect(rect.x,rect.y,3,rect.height),Red);
+            Text(new Rect(rect.x+12,rect.y+6,rect.width-20,20),StageLabels[i],artistStyle,active?White:Muted);
+            DiagnosticStageLabelsFit&=artistStyle.CalcSize(new GUIContent(StageLabels[i])).x<rect.width-20;
+            if(GUI.Button(rect,GUIContent.none,GUIStyle.none)){BlurSearch();ChangeStage(StageIds[i]);}
         }
-        if(GUI.enabled&&Event.current.type==EventType.ScrollWheel&&new Rect(20,134,760,384).Contains(Event.current.mousePosition)){
-            Navigate(Event.current.delta.y>=0?1:-1);Event.current.Use();
+        if(Button(new Rect(24,522,172,32),"FAVORITES",favoritesOnly)){BlurSearch();favoritesOnly=!favoritesOnly;stageFilter=0;collectionFilter="";RebuildList(false);}
+        if(Button(new Rect(24,566,172,34),"+ ADD MUSIC")){BlurSearch();StopPreview();Selected?.Invoke(Idas3CustomRaceMusic.AddId);}
+        Fill(new Rect(212,110,1,490),Edge);
+        GUI.SetNextControlName("SoundRoomSearch");
+        var changed=GUI.TextField(new Rect(230,110,389,36),query,120,searchStyle);
+        SearchFocused=GUI.GetNameOfFocusedControl()=="SoundRoomSearch";
+        if(changed!=query)Search(changed);
+        if(query.Length==0&&!SearchFocused)Text(new Rect(241,119,368,23),"Search songs or artists",artistStyle,Muted);
+        if(Button(new Rect(629,110,137,36),sortByTitle?"TITLE A–Z":"TRACK ORDER")){BlurSearch();sortByTitle=!sortByTitle;RebuildList(true);}
+        string heading=collectionFilter.Length>0?collectionFilter:favoritesOnly?"Favorites":StageLabels[Array.IndexOf(StageIds,stageFilter)];
+        Text(new Rect(232,159,380,22),heading+"  /  "+visible.Count,artistStyle,Muted);
+        if(stageFilter==11&&Button(new Rect(614,153,152,30),"COLLECTION ›")){
+            var names=new List<string>{""};foreach(var entry in entries)if(entry.stage==11&&!names.Contains(entry.collection))names.Add(entry.collection);
+            collectionFilter=names[Wrap(names.IndexOf(collectionFilter)+1,names.Count)];RebuildList(false);BlurSearch();
+        }
+        var listRect=new Rect(230,192,550,400);
+        if(GUI.enabled&&Event.current.type==EventType.ScrollWheel&&listRect.Contains(Event.current.mousePosition)){
+            firstRow=Mathf.Clamp(firstRow+(int)Mathf.Sign(Event.current.delta.y)*3,0,Math.Max(0,visible.Count-VisibleRows));Event.current.Use();
         }
         for(int row=0;row<VisibleRows&&firstRow+row<visible.Count;++row)DrawRow(firstRow+row,row);
-        if(visible.Count==0)Text(new Rect(30,223,735,36),"No tracks in this stage.",button,Muted);
-        if(visible.Count>VisibleRows){
-            Fill(new Rect(783,134,3,384),Blue);
-            float thumb=384f*VisibleRows/visible.Count,offset=(384-thumb)*firstRow/(visible.Count-VisibleRows);
-            Fill(new Rect(783,134+offset,3,thumb),Yellow);
-        }
-        Fill(new Rect(22,527,756,1),Edge);
-        bool canDelete=HighlightedTrackId>=1000;
-        Text(new Rect(24,535,canDelete?472:557,20),string.IsNullOrEmpty(notice)?"Your choice plays during the race. Each driver chooses their own music.":notice,small,string.IsNullOrEmpty(notice)?Muted:Yellow);
-        if(canDelete&&Button(new Rect(506,539,84,34),"DELETE"))RequestDelete();
-        GUI.enabled=beforeEnabled&&!Busy&&!DeleteConfirmationOpen;
-        if(Button(new Rect(600,539,83,34),"SELECT",true))Activate();
-        GUI.enabled=beforeEnabled&&!DeleteConfirmationOpen;
-        if(Button(new Rect(693,539,84,34),"BACK"))Back();
+        if(visible.Count==0)Text(new Rect(240,315,510,55),"No songs found",button,Muted);
+        // Always visible: a full thumb for one page, proportionally shorter for longer lists.
+        firstRow=Mathf.RoundToInt(GUI.VerticalScrollbar(new Rect(773,192,10,398),firstRow,VisibleRows,0,Math.Max(VisibleRows,visible.Count)));
+        Fill(new Rect(800,110,1,490),Edge);
+        DrawPlayer();
         GUI.enabled=beforeEnabled;
-        string controls=WheelNavigation?"STEERING SELECT    ACCEL CONFIRM    BRAKE BACK":"↑ ↓ SELECT    ← → STAGE    ENTER / A OK    ESC / B BACK";
-        if(canDelete)controls+="    DEL / X DELETE";
-        Text(new Rect(24,562,565,20),controls,small,Muted);
+        Fill(new Rect(24,614,1072,1),Edge);
+        string message=Busy?"Loading music…":!string.IsNullOrEmpty(notice)?notice:preview!=null&&preview.Error!=null?preview.Error:
+            WheelNavigation?"STEERING SELECT   ACCEL CONFIRM   BRAKE BACK":"↑ ↓ SONG   ← → COLLECTION   ENTER / A SELECT   P / Y PREVIEW   ESC / B BACK";
+        Text(new Rect(28,631,1056,23),message,small,string.IsNullOrEmpty(notice)?Muted:Yellow);
         if(DeleteConfirmationOpen)DrawDeleteConfirmation();
     }
-    private void DrawDeleteConfirmation(){
-        Fill(new Rect(1,68,Width-2,Height-69),new Color(0,0,0,.72f));
-        const float x=158,y=193,width=484,height=204;
-        Fill(new Rect(x,y,width,height),Ink);Frame(new Rect(x,y,width,height),White);
-        Text(new Rect(x+22,y+18,width-44,36),"Delete song?",confirmationStyle);
-        Text(new Rect(x+22,y+62,width-44,46),deleteTitle,songStyle,Muted);
+    private static string DurationText(float seconds)=>seconds<=0?"—":((int)seconds/60)+":"+((int)seconds%60).ToString("00");
+    private bool Previewable(Entry entry)=>!string.IsNullOrEmpty(entry.previewPath)||!string.IsNullOrEmpty(entry.pcmPath);
+    private Texture2D Cover(string path)
+    {
+        if(string.IsNullOrEmpty(path))return null;if(covers.TryGetValue(path,out var cached))return cached;
+        Texture2D texture=null;
+        try{if(File.Exists(path)&&new FileInfo(path).Length<8*1024*1024){texture=new Texture2D(2,2,TextureFormat.RGBA32,false);if(!texture.LoadImage(File.ReadAllBytes(path))){Destroy(texture);texture=null;}}}catch(Exception){if(texture!=null)Destroy(texture);texture=null;}
+        covers[path]=texture;return texture;
+    }
+    private void DrawPlayer()
+    {
+        if(visible.Count==0){Text(new Rect(820,155,276,40),"Choose a song",button,Muted);return;}
+        var e=entries[visible[selection]];var artwork=new Rect(850,111,216,216);var cover=Cover(e.coverPath);
+        Fill(artwork,Panel);
+        if(cover!=null)GUI.DrawTexture(artwork,cover,ScaleMode.ScaleToFit,true);
+        else{
+            Fill(new Rect(850,111,216,4),Red);
+            Text(new Rect(870,157,176,76),e.id==-1?"AUTOMATIC":e.id==Idas3CustomRaceMusic.AddId?"ADD MUSIC":e.stage==9?"CUSTOM\nMUSIC":e.stage==10?"SPECIAL\nSTAGE":"ARCADE\nSTAGE "+e.stage,confirmationStyle);
+            Text(new Rect(870,288,176,24),"INITIAL D",small,Muted);
+        }
+        Text(new Rect(822,339,270,46),e.title,songStyle);
+        Text(new Rect(822,387,270,20),e.artist,artistStyle,Muted);
+        bool own=preview!=null&&preview.TrackId==e.id;
+        float duration=own?preview.Duration:0,position=own?preview.Position:0;
+        var waveform=own&&preview.Waveform!=null?preview.Waveform:e.waveform;
+        var waveRect=new Rect(822,419,270,44);Fill(waveRect,Panel);
+        if(waveform!=null&&waveform.Length>0){float step=waveRect.width/waveform.Length;for(int i=0;i<waveform.Length;++i){float h=Mathf.Clamp(waveform[i],.055f,1)*36;Fill(new Rect(waveRect.x+i*step,waveRect.center.y-h/2,Math.Max(1,step-1),h),duration>0&&i/(float)waveform.Length<=position/duration?Red:Muted);}}
+        if(GUI.enabled&&duration>0&&Event.current.type==EventType.MouseDown&&waveRect.Contains(Event.current.mousePosition)){preview.Seek(duration*(Event.current.mousePosition.x-waveRect.x)/waveRect.width);Event.current.Use();BlurSearch();}
+        Text(new Rect(822,468,138,20),(position>0?DurationText(position):"0:00")+" / "+(duration>0?DurationText(duration):"PREVIEW"),small,Muted);
+        Text(new Rect(981,468,111,20),DurationText(e.duration)+" FULL",small,Muted);
+        bool enabled=GUI.enabled;
+        GUI.enabled=enabled&&Previewable(e);
+        if(Button(new Rect(822,494,42,34),"‹")){Navigate(-1);TogglePreview();BlurSearch();}
+        if(Button(new Rect(872,494,170,34),own&&preview.Loading?"LOADING…":own&&preview.Playing?"PAUSE":"PLAY PREVIEW",own&&preview.Playing)){TogglePreview();BlurSearch();}
+        if(Button(new Rect(1050,494,42,34),"›")){Navigate(1);TogglePreview();BlurSearch();}
+        GUI.enabled=enabled;
+        if(preview!=null){Text(new Rect(822,540,67,22),"VOLUME",small,Muted);preview.Gain=GUI.HorizontalSlider(new Rect(893,545,137,18),preview.Gain,0,Idas3GameOptions.MaximumVolume);Text(new Rect(1040,540,52,22),Mathf.RoundToInt(preview.Gain*100)+"%",small,Muted);}
+        bool custom=e.id>=1000&&e.id<2000;
+        if(custom&&Button(new Rect(822,566,86,34),"DELETE")){BlurSearch();RequestDelete();}
+        if(Button(new Rect(custom?918:822,566,custom?174:270,34),e.id==Idas3CustomRaceMusic.AddId?"ADD MUSIC":"USE FOR RACE",true)){BlurSearch();Activate();}
+    }
+    private void DrawDeleteConfirmation()
+    {
+        Fill(new Rect(1,5,Width-2,Height-6),new Color(0,0,0,.8f));
+        const float x=318,y=220,width=484,height=220;
+        Fill(new Rect(x,y,width,height),Ink);Frame(new Rect(x,y,width,height),Edge);Fill(new Rect(x,y,width,3),Red);
+        Text(new Rect(x+22,y+20,width-44,36),"Delete song?",confirmationStyle);
+        Text(new Rect(x+22,y+69,width-44,50),deleteTitle,songStyle,Muted);
         bool beforeEnabled=GUI.enabled;GUI.enabled=beforeEnabled&&!Busy;
-        if(Button(new Rect(x+126,y+140,104,40),"NO",!deleteYes)){deleteYes=false;Activate();}
-        if(Button(new Rect(x+244,y+140,104,40),"YES",deleteYes)){deleteYes=true;Activate();}
+        if(Button(new Rect(x+126,y+156,104,40),"NO",!deleteYes)){deleteYes=false;Activate();}
+        if(Button(new Rect(x+244,y+156,104,40),"YES",deleteYes)){deleteYes=true;Activate();}
         GUI.enabled=beforeEnabled;
     }
     private void DrawRow(int index,int row)
     {
-        var entry=entries[visible[index]];bool focus=index==selection,current=entry.id==selectedId;
-        var rect=new Rect(22,134+row*48,754,46);
-        Fill(rect,focus?Blue:Panel);if(focus){Frame(rect,Yellow);Fill(new Rect(rect.x,rect.y,4,rect.height),Yellow);}
-        else Fill(new Rect(rect.x,rect.yMax-1,rect.width,1),new Color32(36,54,64,255));
-        Text(new Rect(30,rect.y+13,42,23),entry.stage==0?"AUTO":entry.stage==9?"USER":entry.stage==10?"SS":"S"+entry.stage,numberStyle,focus?Yellow:Muted);
-        Text(new Rect(83,rect.y+4,682,23),entry.title,label,focus?Yellow:White);
-        Text(new Rect(84,rect.y+27,571,18),entry.artist,artistStyle,Muted);
-        if(current)Text(new Rect(661,rect.y+27,104,18),"SELECTED",numberStyle,Yellow);
-        if(GUI.Button(rect,GUIContent.none,GUIStyle.none)){selection=index;EnsureVisible();Activate();}
+        var e=entries[visible[index]];bool focus=index==selection,current=e.id==selectedId;
+        var rect=new Rect(230,192+row*50,536,48);
+        Fill(rect,focus?Blue:Panel);if(focus)Fill(new Rect(rect.x,rect.y,3,rect.height),Red);
+        if(GUI.Button(new Rect(278,rect.y,440,rect.height),GUIContent.none,GUIStyle.none)){if(selection!=index)StopPreview();selection=index;BlurSearch();}
+        bool enabled=GUI.enabled;GUI.enabled=enabled&&Previewable(e);
+        if(Button(new Rect(238,rect.y+9,30,30),preview!=null&&preview.TrackId==e.id&&preview.Playing?"Ⅱ":"▶")){selection=index;TogglePreview();BlurSearch();}
+        GUI.enabled=enabled;
+        Text(new Rect(278,rect.y+3,388,25),e.title,label);
+        Text(new Rect(279,rect.y+28,342,19),e.artist,small,Muted);
+        Text(new Rect(650,rect.y+28,74,19),current?"SELECTED":DurationText(e.duration),small,current?Yellow:Muted);
+        if(e.id>=0&&!string.IsNullOrEmpty(e.key)&&Button(new Rect(727,rect.y+9,30,30),favorites.Contains(e.key)?"★":"☆")){if(selection!=index)StopPreview();selection=index;ToggleFavorite();BlurSearch();}
     }
 }

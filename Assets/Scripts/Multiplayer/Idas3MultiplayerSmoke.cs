@@ -491,9 +491,10 @@ namespace Idas3.Multiplayer
             yield return Until(()=>session.IsRacing&&session.RaceReleased,40,"Synchronized race countdown did not release.");
             if(course>=9){
                 var choice=session.SelectedChoice;
-                uint expected=(course>=11?1048576u:course==10?524288u:0u)|(course>=12?2097152u<<(course-12):0u)|16384u|(choice.Reverse?32768u:0u)|(choice.Night?65536u:0u)|(choice.Wet?131072u:0u);
-                Check((host.Status.flags&16498688u)==expected,"Hakone native course/conditions differ from lobby");
-                if(course>=11){var enna=FindAnyObjectByType<IdasSpecialStageEnnaCourse>();Check(enna!=null&&enna.LoadedCourseId==course,"Enna online scenery missing");enna.VerifyPresentation();}
+                bool specialStage=course>=11&&course<=14;
+                uint expected=(specialStage?1048576u:course==10?524288u:course==15?16777216u:0u)|(course>=12&&course<=14?2097152u<<(course-12):0u)|16384u|(choice.Reverse?32768u:0u)|(choice.Night?65536u:0u)|(choice.Wet?131072u:0u);
+                Check((host.Status.flags&(16498688u|16777216u))==expected,"Imported native course/conditions differ from lobby");
+                if(specialStage){var enna=FindAnyObjectByType<IdasSpecialStageEnnaCourse>();Check(enna!=null&&enna.LoadedCourseId==course,"Enna online scenery missing");enna.VerifyPresentation();}
                 else {Check(FindAnyObjectByType<Idas8HakoneCourse>().LoadedCourse==Idas8HakoneCourse.CourseName(expected),"Imported online course identity mismatch");
                 Check(FindAnyObjectByType<Idas8HakoneCourse>().LoadedVariant==Idas8HakoneCourse.Variant(expected),"Hakone online scenery variant missing");}
             }

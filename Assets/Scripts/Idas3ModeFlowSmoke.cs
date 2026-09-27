@@ -359,6 +359,63 @@ public sealed class Idas3ModeFlowSmoke : MonoBehaviour {
         public void Apply(Idas3GameOptions.Values a,Idas3GameOptions.Values b,bool displayChanged){}
     }
     private IEnumerator Run(){
+        if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-ghost-check")>=0){
+            yield return Until(()=>host.Ready,600,"Scene initialized");yield return Frames(3);frozen=true;
+            Check(Marshal.SizeOf<Idas3Native.GhostState>()==48,"Ghost ABI layout");
+            Check(Idas3SceneModeFlowFixture(-15)==1,"Native best-run capture and lifecycle checks");
+            typeof(Idas3SceneGame).GetMethod("RefreshScene",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(host,null);
+            var ghost=host.GetComponent<Idas3TimeAttackGhost>();
+            Check(ghost.Visible&&ghost.BestTimeSeconds>0,"Saved best ghost appears in production renderer");
+            var first=new Idas3Native.GhostState{size=48};Check(Idas3Native.Idas3SceneGetGhostState(ref first)==1,"Read ghost pose");
+            for(int i=0;i<144;++i)ghost.ApplyFrame();
+            var last=new Idas3Native.GhostState{size=48};Check(Idas3Native.Idas3SceneGetGhostState(ref last)==1,"Reread ghost pose");
+            Check(first.x==last.x&&first.y==last.y&&first.z==last.z&&first.yaw==last.yaw,"Extra render frames do not advance paused ghost");
+            yield return Capture("ghost-on");
+            ghost.ShowGhost=false;Check(!ghost.Visible,"Off hides immediately");yield return Capture("ghost-off");ghost.ShowGhost=true;ghost.ApplyFrame();
+            var folder=Path.Combine(root,"legacy-options");Directory.CreateDirectory(folder);File.WriteAllText(Path.Combine(folder,"game-options.json"),"{\"version\":1}");
+            var legacy=new Idas3GameOptions(new PerformancePlatform());legacy.Initialize(folder);Check(legacy.Current.timeAttackGhost,"Old settings default ghost on");
+            var menu=host.PauseMenu;menu.SetOpen(true);menu.SelectTab(2);
+            for(int i=0;i<10;++i)menu.Navigate(1);
+            Check(menu.DiagnosticSelection==11&&host.GameOptions.Draft.timeAttackGhost,"Gameplay controller reaches ghost toggle");
+            // Optional interactive capture: hidden Windows players do not send
+            // OnGUI repaint events. Controller/settings checks run in both.
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-ghost-menu-capture")>=0)yield return Capture("gameplay-ghost-setting");
+            menu.Activate();
+            Check(!host.GameOptions.Draft.timeAttackGhost&&host.GameOptions.Current.timeAttackGhost&&host.GameOptions.HasUnsavedChanges,"Toggle remains draft before Apply");
+            menu.Navigate(1);menu.Navigate(1);Check(menu.DiagnosticSelection==13,"Apply remains reachable");menu.Activate();yield return Frames(2);
+            Check(!host.GameOptions.Current.timeAttackGhost&&!ghost.ShowGhost&&!ghost.Visible,"Apply turns live ghost off");
+            var reload=new Idas3GameOptions(new PerformancePlatform());reload.Initialize(Path.GetDirectoryName(host.GameOptions.FilePath));
+            Check(!reload.Current.timeAttackGhost,"Ghost off survives restart");
+            host.GameOptions.BeginEdit();host.GameOptions.Draft.timeAttackGhost=true;Check(host.GameOptions.ApplyDraft(),"Enable ghost again");ghost.ApplyFrame();
+            Check(ghost.Visible&&ghost.BestTimeSeconds==first.finishTicks6000/6000.0,"Enable resumes same best at race time");
+            host.GameOptions.BeginEdit();host.GameOptions.Draft.timeAttackGhost=false;host.GameOptions.BeginEdit();
+            Check(host.GameOptions.Draft.timeAttackGhost,"Cancelled toggle preserves saved value");
+            menu.SetOpen(false);Finish(true,null);yield break;
+        }
+        if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-tsubaki-check")>=0){
+            yield return Until(()=>host.Ready,600,"Scene initialized");yield return Frames(3);frozen=true;
+            for(int fixture=400;fixture<=424;++fixture){
+                Check(Idas3SceneModeFlowFixture(fixture)==1,"Tsubaki scene fixture");
+                typeof(Idas3SceneGame).GetMethod("RefreshScene",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(host,null);
+                yield return Frames(3);
+                if(fixture>400){
+                    int variant=(fixture-401)/3;
+                    var course=FindAnyObjectByType<Idas8HakoneCourse>();
+                    Check(course.LoadedCourse=="TSUBAKI","Tsubaki scenery identity");
+                    Check(Idas3CourseCatalog.SceneName(host.Status)=="Tsubaki Line","Tsubaki pause identity");
+                    Check(course.LoadedVariant==(variant>=4?"night":"day")+((variant&2)!=0?"_wet":"_dry"),"Tsubaki weather/time identity");
+                    Check(!Idas3CourseCatalog.RequiresNight(15),"Tsubaki allows day and night");
+                }
+                yield return Capture("tsubaki-"+fixture);
+                if(fixture==404){
+                    var camera=host.GetComponent<Camera>();var oldTarget=camera.targetTexture;int oldMask=camera.cullingMask;
+                    var rt=new RenderTexture(1280,720,24);var image=new Texture2D(1280,720,TextureFormat.RGB24,false);var previous=RenderTexture.active;
+                    try{camera.targetTexture=rt;camera.cullingMask=1<<28;camera.Render();RenderTexture.active=rt;image.ReadPixels(new Rect(0,0,1280,720),0,0);image.Apply();File.WriteAllBytes(Path.Combine(root,"menu-background.png"),image.EncodeToPNG());}
+                    finally{RenderTexture.active=previous;camera.targetTexture=oldTarget;camera.cullingMask=oldMask;rt.Release();Destroy(rt);Destroy(image);}
+                }
+            }
+            Finish(true,null);yield break;
+        }
         if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-sadamine-boundary-check")>=0){
             yield return Until(()=>host.Ready,600,"Scene initialized");yield return Frames(3);frozen=true;
             for(int fixture=380;fixture<=391;++fixture){
@@ -744,13 +801,13 @@ public sealed class Idas3ModeFlowSmoke : MonoBehaviour {
             foreach(string build in new[]{"0.3.93-replay-detail.1","0.3.94-player-replays.4","0.3.95-community-replays.0","0.3.95-other.99","invalid",null})Check(!Idas3CommunityTimes.SupportedBuild(build),"Older/unknown build rejected: "+build);
             foreach(string build in new[]{Application.version,"0.3.95-community-replays.2","0.3.95-community-replays.10","0.3.95","0.3.96","0.4.0"})Check(Idas3CommunityTimes.SupportedBuild(build),"Current/newer build accepted: "+build);
             Check(Application.version==Idas3CommunityTimes.RequiredSubmissionBuild&&Idas3CommunityTimes.SubmissionBuild(Application.version),"Current player exactly matches the upload release");
-            foreach(string build in new[]{"0.3.95-community-replays.1","0.3.95-community-replays.35","0.3.95-community-replays.37","0.3.96","0.4.0","0.3.95-community-replays.036","0.3.95-community-replays.36 ",null}){
+            foreach(string build in new[]{"0.3.95-community-replays.1","0.3.95-community-replays.36","0.3.95-community-replays.38","0.3.96","0.4.0","0.3.95-community-replays.037","0.3.95-community-replays.37 ",null}){
                 var wrongBuild=JsonUtility.FromJson<Idas3CommunityTimes.Run>(JsonUtility.ToJson(fresh));wrongBuild.build=build;
                 Check(!Idas3CommunityTimes.SubmissionBuild(build)&&!Idas3CommunityTimes.Uploadable(wrongBuild),"Only exact build can submit: "+build);
             }
-            var previousBuild=JsonUtility.FromJson<Idas3CommunityTimes.Run>(JsonUtility.ToJson(fresh));previousBuild.id=Guid.NewGuid().ToString();previousBuild.build="0.3.95-community-replays.35";
+            var previousBuild=JsonUtility.FromJson<Idas3CommunityTimes.Run>(JsonUtility.ToJson(fresh));previousBuild.id=Guid.NewGuid().ToString();previousBuild.build="0.3.95-community-replays.36";
             previousBuild.ticks6000=60000;previousBuild.splits=new[]{20000,40000,60000,0};
-            var futureBuild=JsonUtility.FromJson<Idas3CommunityTimes.Run>(JsonUtility.ToJson(fresh));futureBuild.id=Guid.NewGuid().ToString();futureBuild.build="0.3.95-community-replays.37";
+            var futureBuild=JsonUtility.FromJson<Idas3CommunityTimes.Run>(JsonUtility.ToJson(fresh));futureBuild.id=Guid.NewGuid().ToString();futureBuild.build="0.3.95-community-replays.38";
             var previousSeason=JsonUtility.FromJson<Idas3CommunityTimes.Run>(JsonUtility.ToJson(fresh));previousSeason.id=Guid.NewGuid().ToString();previousSeason.epoch=1;
             Check(!Idas3CommunityTimes.Uploadable(previousBuild)&&!Idas3CommunityTimes.Uploadable(previousSeason),"Old build and season queues cannot re-enter rankings");
             Check(Idas3CommunityTimes.Flatten(new Idas3CommunityTimes.Snapshot{ruleset=Idas3CommunityTimes.Ruleset,entries=new[]{old,imported}}).Length==28,"Existing leaderboard history remains readable");
@@ -1135,7 +1192,7 @@ public sealed class Idas3ModeFlowSmoke : MonoBehaviour {
         var cameras=new List<Camera>();foreach(var item in Resources.FindObjectsOfTypeAll<Camera>())if(item!=null&&item.enabled&&item.gameObject.activeInHierarchy&&item.targetTexture==target)cameras.Add(item);
           cameras.Sort((a,b)=>a.depth.CompareTo(b.depth));foreach(var item in cameras)item.Render();
           Idas3PauseMenu captureMenu=null;
-          if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-full-tune-check")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-player-replays-check")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-pause-course-check")>=0){
+          if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-full-tune-check")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-player-replays-check")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-pause-course-check")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-ghost-check")>=0){
               captureMenu=(Idas3PauseMenu)typeof(Idas3SceneGame).GetField("pauseMenu",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(host);
               if(captureMenu.IsOpen){camera.targetTexture=previous;scene.ApplyFrame();ui.ApplyFrame();captureMenu.RequestDiagnosticCapture(target);
                   yield return Until(()=>captureMenu.DiagnosticCaptureReady,300,"Gameplay menu repaint (open="+captureMenu.IsOpen+", active="+captureMenu.isActiveAndEnabled+")");yield return new WaitForEndOfFrame();}
@@ -1168,7 +1225,8 @@ public sealed class Idas3ModeFlowSmoke : MonoBehaviour {
         }
         string file=name+".png";File.WriteAllBytes(Path.Combine(root,file),image.EncodeToPNG());captures.Add(file);
         if(captureMenu!=null)captureMenu.CancelDiagnosticCapture();
-        camera.targetTexture=previous;scene.ApplyFrame();ui.ApplyFrame();Destroy(image);target.Release();Destroy(target);frozen=false;yield return null;
+        camera.targetTexture=previous;scene.ApplyFrame();ui.ApplyFrame();Destroy(image);target.Release();Destroy(target);
+        frozen=Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-ghost-check")>=0;yield return null;
     }
     private IEnumerator Guard(IEnumerator routine){
         var stack=new Stack<IEnumerator>();stack.Push(routine);
@@ -1182,7 +1240,9 @@ public sealed class Idas3ModeFlowSmoke : MonoBehaviour {
         if(finished)return;finished=true;bool stopped=false;
         try{host.StopNative();stopped=!host.Ready;}catch(Exception e){error=(error??"")+e;passed=false;}
         File.WriteAllText(Path.Combine(root,"report.json"),JsonUtility.ToJson(new Report{passed=passed,shutdownComplete=stopped,applicationVersion=Application.version,
-            checks=checks,error=error,captures=captures.ToArray(),scope=Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-sadamine-boundary-check")>=0?
+            checks=checks,error=error,captures=captures.ToArray(),scope=Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-ghost-check")>=0?
+            "Personal-best ghost capture/finish/persistence, save/course/direction/weather separation, car/transmission changes, imported-course loading, optional replay recording independence, pause/frame independence, runtime blue mesh rendering and Gameplay controller toggle/apply/reload/cancel. Isolated native gate finish and scripted driving; no ordinary saves or online submissions.":Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-tsubaki-check")>=0?
+            "Tsubaki Line course selection and paused native camera fixtures at three route positions in both directions across all four day/night/dry/wet variants. Checks actual loaded course identity, pause labels, variant selection and orderly shutdown. Isolated saves; this visual check does not establish a full driven lap or live online service compatibility.":Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-sadamine-boundary-check")>=0?
             "Sadamine roadside reproduction using actual source driving, both steering directions and three contact durations in bumper/chase cameras. Roadside face coverage checked on the loaded course, with 25 camera-pan and 25 subpixel-motion frames at the reported start area. Native fixtures verify wall contacts and unchanged driving state after rendering. Isolated saves; not a full-route collision audit.":Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-sadamine-stability-check")>=0?
             "Actual source driving on Sadamine in both directions, Hakone and original Akina; road-relative pose attenuation, original physics isolation, chase/bumper camera inputs and all three render paths. Eight Sadamine condition/direction captures. Private scripted driving, no live network peer.":Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-imported-shadow-check")>=0?
             "Production A8/DXT5 DDS decoding and GPU pixels for baked and standalone shadow visibility, UV0/UV1 routing, then both directions and all day/night/dry/wet variants of Hakone and Sadamine. Directional fence/gate visibility and shared scenery checked on actual loaded assets with scene captures. Controlled native camera fixtures and isolated saves; no live submissions.":Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-ta-leaderboard-check")>=0?

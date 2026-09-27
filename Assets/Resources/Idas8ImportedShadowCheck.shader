@@ -18,7 +18,7 @@ Shader "Hidden/IDAS3/Imported Shadow Check" {
   #pragma fragment mainPS
   #define IDAS_IMPORTED_COURSE
   #include "Idas3SceneCommon.cginc"
-  P checkVS(V v){P o=(P)0;o.p=float4(v.p,1);o.c=v.c;o.uv=v.uv;o.offsetColor=v.offsetColor;return o;}
+  P checkVS(V v){P o=(P)0;o.p=float4(v.p,1);o.c=v.c;o.uv=v.uv;o.offsetColor=v.offsetColor;o.sponsorAxis=v.treeFace.y;return o;}
   ENDHLSL
  } }
 }

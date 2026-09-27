@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Meter=Idas3ArcadeMeterCatalog.Meter;
 using Curve=Idas3ArcadeMeterCatalog.Curve;
 
@@ -10,16 +11,26 @@ internal sealed class Idas3MeterAnimationState
     bool ready,gearEvent;
     int gear;
     double seconds,gearStarted;
+    readonly List<Curve> eyes=new List<Curve>();
+    double eyeDuration;
 
     static bool Finite(double value)=>!double.IsNaN(value)&&!double.IsInfinity(value);
     static bool Contains(string value,string part)=>value!=null&&value.IndexOf(part,StringComparison.OrdinalIgnoreCase)>=0;
-    internal void Reset(){meter=null;ready=false;gearEvent=false;gear=0;seconds=0;gearStarted=0;}
+    internal void Reset(){meter=null;ready=false;gearEvent=false;gear=0;seconds=0;gearStarted=0;eyes.Clear();eyeDuration=0;}
 
     internal void Update(Meter next,Idas3ArcadeHud.Telemetry telemetry,float now){
         bool valid=next!=null&&(telemetry.flags&1)!=0&&telemetry.gear>=0&&telemetry.gear<=6&&Finite(now);
         if(!valid){Reset();return;}
         if(!ready||!ReferenceEquals(meter,next)||now<seconds){
-            meter=next;ready=true;gearEvent=false;gear=telemetry.gear;seconds=now;return;
+            Reset();meter=next;ready=true;gearEvent=false;gear=telemetry.gear;seconds=now;
+            // The cooked eye widget registers three completion-driven loops.
+            // A stable 00/01/02 playlist preserves all keys and avoids random
+            // changes on pause/seek or when a preview is recreated.
+            foreach(var layer in next.layers)if(layer?.curves!=null)foreach(var curve in layer.curves)
+                if(Contains(curve.animation,"Eye_Loop")&&!eyes.Exists(c=>c.animation==curve.animation)&&DurationSeconds(curve)>0)eyes.Add(curve);
+            eyes.Sort((a,b)=>string.CompareOrdinal(a.animation,b.animation));
+            foreach(var curve in eyes)eyeDuration+=DurationSeconds(curve);
+            return;
         }
         // Frozen presentation can still receive authoritative telemetry. Track
         // its gear without creating a pulse now or when the clock resumes.
@@ -47,6 +58,12 @@ internal sealed class Idas3MeterAnimationState
             if(!gearEvent)return false;
             elapsed=seconds-gearStarted;
             if(elapsed<0||elapsed>=duration)return false;
+        }else if(Contains(curve.animation,"Eye_Loop")){
+            if(eyeDuration<=0)return false;
+            elapsed=seconds%eyeDuration;if(elapsed<0)elapsed+=eyeDuration;
+            Curve selected=null;
+            foreach(var clip in eyes){double length=DurationSeconds(clip);if(elapsed<length){selected=clip;break;}elapsed-=length;}
+            if(selected==null||selected.animation!=curve.animation)return false;
         }else if(Contains(curve.animation,"LED")){
             // Ambient loop phase is stable at a given timestamp, including
             // preview renderer recreation and different display frame rates.

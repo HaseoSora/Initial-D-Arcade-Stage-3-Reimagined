@@ -99,6 +99,8 @@ class Importer:
         self.material_data = read_json(self.audit / "materials.json")
         self.materials = self.material_data["materials"]
         self.registry = read_json(self.audit / "meter-registry.json")["rows"]
+        registrations = self.audit / "runtime-registrations.json"
+        self.runtime_registrations = read_json(registrations) if registrations.exists() else {}
         self.names = read_json(ROOT / "Tools/ArcadeMeterNames.json")
         self.texture_records = []
         self.texture_paths = {}
@@ -220,7 +222,7 @@ class Importer:
         # These source materials generate pixels rather than sampling a base
         # image. Use the recovered neutral texture as the shader's carrier;
         # live audio/procedural shape supplies opacity, never a dummy image.
-        if "M_Add_Ball" in parent or parent.endswith("/M_AudioCapture.M_AudioCapture"):
+        if "M_Add_Ball" in parent or "M_Shadow_Ball" in parent or parent.endswith("/M_AudioCapture.M_AudioCapture"):
             primary = self.texture("/Game/IND/UI/MasterMaterial/T_DummyWhite.T_DummyWhite")
         parameters = [{"name": key, "value": value["value"]} for key, value in effective.get("scalar", {}).items() if isinstance(value.get("value"), (int, float))]
         vectors = [{"name": key, "values": rgba(value["value"], (0, 0, 0, 0))} for key, value in effective.get("vector", {}).items() if value.get("value") is not None]
@@ -350,7 +352,7 @@ class Importer:
             return {"SpeedRate01": "speed1", "SpeedRate02": "speed10", "SpeedRate03": "speed100"}[name]
         if re.fullmatch(r"RPM0[1-5]", name):
             return "rpm" + str(10 ** (int(name[-1]) - 1))
-        if name == "GearRate01":
+        if name in ("GearRate01", "GearRate"):
             return "gear"
         if name == "GearRate01_add":
             # Phoenix registers this image as Setup_GearNum's GearNumEffect.
@@ -427,6 +429,14 @@ class Importer:
                 # serialized editor brush (41 -> 00; 47 -> 47, not 46).
                 frame_id = "00" if result["id"] == 41 else "47"
                 runtime_resource = "/Game/IND/UI/Race/Meter/{0}/Texture/Frame/T_Meter{0}_Rmp01_A.T_Meter{0}_Rmp01_A".format(frame_id)
+            registrations = [r for r in self.runtime_registrations.get(str(result["id"]), [])
+                if r["arguments"] and r["arguments"][0].get("object", "").rsplit(".", 1)[-1] == name]
+            day_change = next((r for r in registrations if r["call"] == "Setup_AddDayChangeTexture_SoftRef"), None)
+            frames = next((r for r in registrations if r["call"] == "Setup_Frame_SoftRef"), None)
+            if day_change:
+                runtime_resource = day_change["arguments"][1]["softref"]
+            elif frames:
+                runtime_resource = frames["arguments"][1]["array"][0]
             mat, material = self.material(runtime_resource)
             curves = [dict(c) for c in all_curves.get(name, [])]
             ancestors = item.get("parentGroups", [])
@@ -436,6 +446,20 @@ class Importer:
                     copy["owner"] = self.owner(group)
                     curves.append(copy)
             role = self.role(name, curves)
+            if result["id"] >= 90:
+                # New compositions animate their permanent faces/characters
+                # through warning tracks. Those tracks do not make the whole
+                # face a low-RPM lamp. Keep the neutral authored picture.
+                if role == "low" and name != "RevLamp2" and props.get("Visibility", "Visible").endswith("Visible"):
+                    role = "static"
+                if name == "GearDice_Blur":
+                    role = "gearAnimation"
+                elif name == "GearDice":
+                    role = "gear"
+                if name.startswith("Rev_Normal"):
+                    role = "revNormal"
+                elif name.startswith("Rev_Over"):
+                    role = "rev"
             if result["id"] == 7 and name == "CenterMeter1":
                 # Setup_Frame registers the core RPM face. Its low/rev warning
                 # color animations decorate that face; they do not own it.
@@ -464,7 +488,7 @@ class Importer:
                         if binding["name"] != "Texture":
                             mat["textureBindings"].append(binding)
             scalars = {p["name"]: p["value"] for p in mat["parameters"]}
-            cols, rows = max(1, int(scalars.get("Colums", 1))), max(1, int(scalars.get("Row", 1)))
+            cols, rows = max(1, int(scalars.get("Colums", scalars.get("Columns", 1)))), max(1, int(scalars.get("Row", scalars.get("Rows", 1))))
             index = int(scalars.get("Index", 0))
             uv = [index % cols / cols, 1 - (index // cols + 1) / rows, 1 / cols, 1 / rows] if rows * cols > 1 else [0, 0, 1, 1]
             transform = list(item["transform"])
@@ -498,6 +522,14 @@ class Importer:
             layer.update(self.transform_baseline(props))
             layer["switchers"] = item.get("switchers", [])
             layer["textureVariants"], layer["nightTexture"] = self.variants(layer["texture"], role)
+            if day_change:
+                layer["nightTexture"] = self.texture(day_change["arguments"][2]["softref"])
+            if frames:
+                layer["textureVariants"] = []
+                for day, argument in zip(("A", "B"), frames["arguments"][1:3]):
+                    for index, reference in enumerate(argument["array"], 1):
+                        layer["textureVariants"].append(dict(texture=self.texture(reference), day=day, state="", index=index,
+                            maxRpm=FRAME_MAXIMUMS[index]))
             if result["id"] == 9 and name == "CenterMeter":
                 # Setup_Frame passes the same A array for day and night.
                 # The separate night-only Light supplies its illumination.

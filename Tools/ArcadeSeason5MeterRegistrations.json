@@ -1,0 +1,1318 @@
+{
+  "90": [
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 645,
+          "object": "WBP_Meter_90_C.LeftMeter"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Spd_A.T_Meter10_Spd_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Spd_A.T_Meter10_Spd_A"
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 624,
+          "object": "WBP_Meter_90_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/10/Texture/T_Meter10_BasePoint_A.T_Meter10_BasePoint_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/10/Texture/T_Meter10_BasePoint_A.T_Meter10_BasePoint_A"
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 646,
+          "object": "WBP_Meter_90_C.LeftPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/10/Texture/T_Meter10_BasePoint_A.T_Meter10_BasePoint_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/10/Texture/T_Meter10_BasePoint_A.T_Meter10_BasePoint_A"
+        }
+      ]
+    },
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 623,
+          "object": "WBP_Meter_90_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp01_A.T_Meter10_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp02_A.T_Meter10_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp03_A.T_Meter10_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp04_A.T_Meter10_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp05_A.T_Meter10_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp06_A.T_Meter10_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp07_A.T_Meter10_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp08_A.T_Meter10_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 1266
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp01_A.T_Meter10_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp02_A.T_Meter10_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp03_A.T_Meter10_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp04_A.T_Meter10_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp05_A.T_Meter10_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp06_A.T_Meter10_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp07_A.T_Meter10_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/10/Texture/Frame/T_Meter10_Rmp08_A.T_Meter10_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 627
+        }
+      ]
+    }
+  ],
+  "91": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 710,
+          "object": "WBP_Meter_91_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp01_A.T_Meter00_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp02_A.T_Meter00_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp03_A.T_Meter00_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp04_A.T_Meter00_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp05_A.T_Meter00_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp06_A.T_Meter00_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp07_A.T_Meter00_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp08_A.T_Meter00_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp01_A.T_Meter00_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp02_A.T_Meter00_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp03_A.T_Meter00_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp04_A.T_Meter00_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp05_A.T_Meter00_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp06_A.T_Meter00_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp07_A.T_Meter00_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp08_A.T_Meter00_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 711,
+          "object": "WBP_Meter_91_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/91/Texture/T_Meter91_PointRmp_A.T_Meter91_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/91/Texture/T_Meter91_PointRmp_A.T_Meter91_PointRmp_A"
+        }
+      ]
+    }
+  ],
+  "92": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 443,
+          "object": "WBP_Meter_92_C.Center_meter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp01_A.T_Meter92_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp02_A.T_Meter92_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp03_A.T_Meter92_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp04_A.T_Meter92_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp05_A.T_Meter92_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp06_A.T_Meter92_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp07_A.T_Meter92_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp08_A.T_Meter92_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 31
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp01_A.T_Meter92_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp02_A.T_Meter92_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp03_A.T_Meter92_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp04_A.T_Meter92_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp05_A.T_Meter92_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp06_A.T_Meter92_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp07_A.T_Meter92_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/92/Texture/Frame/T_Meter92_Rmp08_A.T_Meter92_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 31
+        }
+      ]
+    }
+  ],
+  "93": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_93_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "94": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_94_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "95": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_95_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "96": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_96_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "97": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_97_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp01_A.T_Meter93_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp02_A.T_Meter93_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp03_A.T_Meter93_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp04_A.T_Meter93_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp05_A.T_Meter93_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp06_A.T_Meter93_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp07_A.T_Meter93_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/93/Texture/Frame/T_Meter93_Rmp08_A.T_Meter93_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "98": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 635,
+          "object": "WBP_Meter_98_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 680
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_98_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        }
+      ]
+    }
+  ],
+  "99": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 635,
+          "object": "WBP_Meter_99_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 680
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_99_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        }
+      ]
+    }
+  ],
+  "100": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 635,
+          "object": "WBP_Meter_100_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 680
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_100_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        }
+      ]
+    }
+  ],
+  "101": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 635,
+          "object": "WBP_Meter_101_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 680
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_101_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        }
+      ]
+    }
+  ],
+  "102": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 635,
+          "object": "WBP_Meter_102_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp01_A.T_Meter98_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp02_A.T_Meter98_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp03_A.T_Meter98_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp04_A.T_Meter98_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp05_A.T_Meter98_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp06_A.T_Meter98_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp07_A.T_Meter98_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/98/Texture/Frame/T_Meter98_Rmp08_A.T_Meter98_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 680
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_102_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/98/Texture/T_Meter98_PointRmp_A.T_Meter98_PointRmp_A"
+        }
+      ]
+    }
+  ],
+  "103": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 299,
+          "object": "WBP_Meter_103_C.Center_Meter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp01_A.T_Meter103_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp02_A.T_Meter103_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp03_A.T_Meter103_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp04_A.T_Meter103_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp05_A.T_Meter103_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp06_A.T_Meter103_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp07_A.T_Meter103_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp08_A.T_Meter103_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp01_A.T_Meter103_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp02_A.T_Meter103_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp03_A.T_Meter103_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp04_A.T_Meter103_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp05_A.T_Meter103_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp06_A.T_Meter103_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp07_A.T_Meter103_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/103/Texture/T_Meter103_Rmp08_A.T_Meter103_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 656
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 300,
+          "object": "WBP_Meter_103_C.Center_Pin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/58/Texture/T_Meter58_PointRmp_A.T_Meter58_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/58/Texture/T_Meter58_PointRmp_B.T_Meter58_PointRmp_B"
+        }
+      ]
+    }
+  ],
+  "104": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 601,
+          "object": "WBP_Meter_104_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp01_A.T_Meter104_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp02_A.T_Meter104_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp03_A.T_Meter104_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp04_A.T_Meter104_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp05_A.T_Meter104_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp06_A.T_Meter104_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp07_A.T_Meter104_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp08_A.T_Meter104_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 63
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp01_A.T_Meter104_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp02_A.T_Meter104_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp03_A.T_Meter104_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp04_A.T_Meter104_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp05_A.T_Meter104_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp06_A.T_Meter104_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp07_A.T_Meter104_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/104/Texture/Flame/T_Meter104_Rmp08_A.T_Meter104_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 63
+        }
+      ]
+    }
+  ],
+  "105": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 725,
+          "object": "WBP_Meter_105_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 97
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 97
+        }
+      ]
+    }
+  ],
+  "106": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 738,
+          "object": "WBP_Meter_106_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp01_A.T_Meter106_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp02_A.T_Meter106_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp03_A.T_Meter106_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp04_A.T_Meter106_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp05_A.T_Meter106_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp06_A.T_Meter106_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp07_A.T_Meter106_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp08_A.T_Meter106_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 97
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp01_B.T_Meter106_Rmp01_B",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp02_B.T_Meter106_Rmp02_B",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp03_B.T_Meter106_Rmp03_B",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp04_B.T_Meter106_Rmp04_B",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp05_B.T_Meter106_Rmp05_B",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp06_B.T_Meter106_Rmp06_B",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp07_B.T_Meter106_Rmp07_B",
+            "/Game/IND/UI/Race/Meter/106/Texture/Frame/T_Meter106_Rmp08_B.T_Meter106_Rmp08_B"
+          ],
+          "arrayScriptByteOffset": 760
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 739,
+          "object": "WBP_Meter_106_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/106/Texture/T_Meter106_PointRmp_A.T_Meter106_PointRmp_A"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/106/Texture/T_Meter106_PointRmp_B.T_Meter106_PointRmp_B"
+        }
+      ]
+    }
+  ],
+  "107": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 638,
+          "object": "WBP_Meter_107_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "108": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 638,
+          "object": "WBP_Meter_108_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "109": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 638,
+          "object": "WBP_Meter_109_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp01_A.T_Meter79_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp02_A.T_Meter79_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp03_A.T_Meter79_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp04_A.T_Meter79_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp05_A.T_Meter79_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp06_A.T_Meter79_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp07_A.T_Meter79_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/79/Texture/Frame/T_Meter79_Rmp08_A.T_Meter79_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "110": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 713,
+          "object": "WBP_Meter_110_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp01_A.T_Meter00_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp02_A.T_Meter00_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp03_A.T_Meter00_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp04_A.T_Meter00_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp05_A.T_Meter00_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp06_A.T_Meter00_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp07_A.T_Meter00_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp08_A.T_Meter00_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp01_A.T_Meter00_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp02_A.T_Meter00_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp03_A.T_Meter00_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp04_A.T_Meter00_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp05_A.T_Meter00_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp06_A.T_Meter00_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp07_A.T_Meter00_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/00/Texture/Frame/T_Meter00_Rmp08_A.T_Meter00_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        }
+      ]
+    }
+  ],
+  "111": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 762,
+          "object": "WBP_Meter_111_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp01_A.T_Meter111_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp02_A.T_Meter111_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp03_A.T_Meter111_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp04_A.T_Meter111_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp05_A.T_Meter111_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp06_A.T_Meter111_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp07_A.T_Meter111_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp08_A.T_Meter111_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp01_A.T_Meter111_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp02_A.T_Meter111_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp03_A.T_Meter111_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp04_A.T_Meter111_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp05_A.T_Meter111_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp06_A.T_Meter111_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp07_A.T_Meter111_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/111/Textures/Frame/T_Meter111_Rmp08_A.T_Meter111_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 108
+        }
+      ]
+    }
+  ],
+  "112": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 661,
+          "object": "WBP_Meter_112_C.Image_CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp01_A.T_Meter112_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp02_A.T_Meter112_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp03_A.T_Meter112_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp04_A.T_Meter112_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp05_A.T_Meter112_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp06_A.T_Meter112_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp07_A.T_Meter112_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp08_A.T_Meter112_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp01_A.T_Meter112_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp02_A.T_Meter112_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp03_A.T_Meter112_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp04_A.T_Meter112_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp05_A.T_Meter112_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp06_A.T_Meter112_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp07_A.T_Meter112_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/112/Textures/Frame/T_Meter112_Rmp08_A.T_Meter112_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 41
+        }
+      ]
+    }
+  ],
+  "115": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 557,
+          "object": "WBP_Meter_115_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp01.T_Meter115_Rmp01",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp02.T_Meter115_Rmp02",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp03.T_Meter115_Rmp03",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp04.T_Meter115_Rmp04",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp05.T_Meter115_Rmp05",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp06.T_Meter115_Rmp06",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp07.T_Meter115_Rmp07",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp08.T_Meter115_Rmp08"
+          ],
+          "arrayScriptByteOffset": 41
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp01.T_Meter115_Rmp01",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp02.T_Meter115_Rmp02",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp03.T_Meter115_Rmp03",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp04.T_Meter115_Rmp04",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp05.T_Meter115_Rmp05",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp06.T_Meter115_Rmp06",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp07.T_Meter115_Rmp07",
+            "/Game/IND/UI/Race/Meter/115/Textures/Frame/T_Meter115_Rmp08.T_Meter115_Rmp08"
+          ],
+          "arrayScriptByteOffset": 41
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 558,
+          "object": "WBP_Meter_115_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/115/Textures/T_Meter115_CenterPin.T_Meter115_CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/115/Textures/T_Meter115_CenterPin.T_Meter115_CenterPin"
+        }
+      ]
+    }
+  ],
+  "116": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 636,
+          "object": "WBP_Meter_116_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp01_A.T_Meter116_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp02_A.T_Meter116_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp03_A.T_Meter116_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp04_A.T_Meter116_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp05_A.T_Meter116_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp06_A.T_Meter116_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp07_A.T_Meter116_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp08_A.T_Meter116_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 97
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp01_A.T_Meter116_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp02_A.T_Meter116_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp03_A.T_Meter116_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp04_A.T_Meter116_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp05_A.T_Meter116_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp06_A.T_Meter116_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp07_A.T_Meter116_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/116/Textures/Frame/T_Meter116_Rmp08_A.T_Meter116_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 97
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 637,
+          "object": "WBP_Meter_116_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/116/Textures/T_Meter116_CenterPin.T_Meter116_CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/116/Textures/T_Meter116_CenterPin.T_Meter116_CenterPin"
+        }
+      ]
+    }
+  ],
+  "117": [
+    {
+      "call": "Setup_Frame_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 626,
+          "object": "WBP_Meter_117_C.CenterMeter"
+        },
+        {
+          "token": 0,
+          "ref": 8,
+          "array": [
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp01_A.T_Meter117_Rmp01_A",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp02_A.T_Meter117_Rmp02_A",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp03_A.T_Meter117_Rmp03_A",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp04_A.T_Meter117_Rmp04_A",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp05_A.T_Meter117_Rmp05_A",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp06_A.T_Meter117_Rmp06_A",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp07_A.T_Meter117_Rmp07_A",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp08_A.T_Meter117_Rmp08_A"
+          ],
+          "arrayScriptByteOffset": 267
+        },
+        {
+          "token": 0,
+          "ref": 10,
+          "array": [
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp01_B.T_Meter117_Rmp01_B",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp02_B.T_Meter117_Rmp02_B",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp03_B.T_Meter117_Rmp03_B",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp04_B.T_Meter117_Rmp04_B",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp05_B.T_Meter117_Rmp05_B",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp06_B.T_Meter117_Rmp06_B",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp07_B.T_Meter117_Rmp07_B",
+            "/Game/IND/UI/Race/Meter/117/Textures/Frame/T_Meter117_Rmp08_B.T_Meter117_Rmp08_B"
+          ],
+          "arrayScriptByteOffset": 938
+        }
+      ]
+    },
+    {
+      "call": "Setup_AddDayChangeTexture_SoftRef",
+      "arguments": [
+        {
+          "token": 1,
+          "ref": 627,
+          "object": "WBP_Meter_117_C.CenterPin"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/117/Textures/T_Meter117_PointRmp.T_Meter117_PointRmp"
+        },
+        {
+          "softref": "/Game/IND/UI/Race/Meter/117/Textures/T_Meter117_PointRmp.T_Meter117_PointRmp"
+        }
+      ]
+    }
+  ]
+}

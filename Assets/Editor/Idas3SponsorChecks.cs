@@ -22,7 +22,7 @@ public static class Idas3SponsorChecks {
                     var v=new Vector3[nv];var n=new Vector3[nv];var uv=new Vector2[nv];var uv2=new Vector2[nv];var c=new Color32[nv];var ix=new int[nt];
                     for(int i=0;i<nv;i++){v[i]=V(r);n[i]=V(r);uv[i]=new Vector2(r.ReadSingle(),r.ReadSingle());uv2[i]=new Vector2(r.ReadSingle(),r.ReadSingle());c[i]=new Color32(r.ReadByte(),r.ReadByte(),r.ReadByte(),r.ReadByte());}
                     for(int i=0;i<nt;i++)ix[i]=r.ReadInt32();var old=(int[])ix.Clone();
-                    object[] args={v,n,uv,uv2,c,ix,course=="SADAMINE"&&variant=="night_wet"?.25f:0,course=="HAKONE"};var tags=(Vector2[])method.Invoke(null,args);if(tags==null)continue;
+                    object[] args={v,n,uv,uv2,c,ix,course=="SADAMINE"&&variant=="night_wet"?.25f:0,course=="HAKONE",0f};var tags=(Vector2[])method.Invoke(null,args);if(tags==null)continue;
                     var vv=(Vector3[])args[0];var nn=(Vector3[])args[1];var tt=(Vector2[])args[2];var tt2=(Vector2[])args[3];var cc=(Color32[])args[4];
                     for(int i=0;i<nt;i++){
                         int a=old[i],b=ix[i];Require(v[a]==vv[b]&&n[a]==nn[b]&&uv[a]==tt[b]&&uv2[a]==tt2[b]&&c[a].Equals(cc[b]),"Geometry or texture data changed");checkedCorners++;

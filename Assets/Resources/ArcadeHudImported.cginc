@@ -7,6 +7,12 @@ float4 _SampleMotion;
 float _MaterialEffect;
 sampler2D _EffectTex1,_EffectTex2,_EffectTex3;
 float4 _EffectParams,_EffectParams2,_EffectColor1,_EffectColor2,_EffectColor3;
+sampler2D _MainTex;
+float2 MeterRotate(float2 uv,float turns){
+ float a=turns*6.2831853,c=cos(a),s=sin(a);float2 d=uv-.5;
+ return float2(c*d.x-s*d.y,s*d.x+c*d.y)+.5;
+}
+float MeterInside(float2 uv){return step(0,uv.x)*step(0,uv.y)*step(uv.x,1)*step(uv.y,1);}
 float MeterGlowLobe(float radius,float density,float distanceFromCenter){
  return radius>0&&density>0?pow(saturate(1-distanceFromCenter/max(radius,.0001)),max(.1,density)*3):0;
 }
@@ -72,6 +78,58 @@ float4 ImportedMeterEffect(float2 uv,float4 sampled,float4 tint){
   float horizontal=pow(saturate(1-abs(localUv.x-.5)/max(.001,_EffectParams2.x)),max(.1,_EffectParams2.y));
   float vertical=pow(saturate(1-abs(localUv.y-.5)/max(.001,_EffectParams2.z)),max(.1,_EffectParams2.w));
   sampled=grid*base*tint;sampled.a*=mask.r*mask.a*horizontal*vertical;
+ }
+ if(_MaterialEffect>7.5&&_MaterialEffect<8.5){
+  float r=length(localUv-.5);
+  float shadow=MeterGlowLobe(_EffectParams.x,_EffectParams2.x,r)+MeterGlowLobe(_EffectParams.y,_EffectParams2.y,r)+MeterGlowLobe(_EffectParams.z,_EffectParams2.z,r);
+  return float4(0,0,0,tint.a*saturate(shadow));
+ }
+ if(_MaterialEffect>8.5&&_MaterialEffect<9.5){
+  float2 distortion=tex2D(_EffectTex1,localUv).rg-.5;
+  float2 eye=(localUv-.5)/max(.01,_EffectParams.z)+.5+_EffectParams.xy+distortion*_EffectParams.w*.1;
+  sampled=tex2D(_MainTex,eye)*tint;sampled.a*=MeterInside(eye);
+ }
+ if(_MaterialEffect>9.5&&_MaterialEffect<10.5){
+  float4 mask=tex2D(_EffectTex1,localUv),grad=tex2D(_EffectTex2,MeterRotate(localUv,_EffectParams.x));
+  sampled.a*=mask.r*mask.a*grad.r;
+ }
+ if(_MaterialEffect>10.5&&_MaterialEffect<11.5){
+  float time=_EffectParams.x;
+  float2 noiseUv=frac(localUv*_EffectParams.zw+float2(time*.23,-time));
+  float2 distortion=tex2D(_EffectTex3,noiseUv).rg-.5;
+  float4 first=tex2D(_MainTex,frac(noiseUv+distortion*.08*_EffectParams.y));
+  float4 second=tex2D(_EffectTex1,frac(localUv*_EffectParams.zw+float2(-time*.17,-time*.7)));
+  float4 mask=tex2D(_EffectTex2,localUv);
+  float value=saturate(first.r*second.r*_EffectParams.y);
+  return float4(_EffectColor1.rgb*tint.rgb,tint.a*mask.r*mask.a*value);
+ }
+ if(_MaterialEffect>11.5&&_MaterialEffect<12.5){
+  float4 mask=tex2D(_EffectTex1,MeterRotate(localUv,_EffectParams.x));
+  sampled.a*=mask.r*mask.a;
+ }
+ if(_MaterialEffect>12.5&&_MaterialEffect<13.5){
+  // This master uses the source RGB mask as coverage, not an opaque white face.
+  sampled=float4(tint.rgb,sampled.r*sampled.a);
+ }
+ if(_MaterialEffect>13.5&&_MaterialEffect<14.5){
+  float2 d=localUv-.5;float radius=length(d),angle=atan2(d.y,d.x)/6.2831853;
+  float2 radial=float2(angle*_EffectParams.x,radius*_EffectParams.y)+_EffectParams.zw;
+  float distort=tex2D(_EffectTex2,frac(radial*.37)).r;
+  float noise=tex2D(_EffectTex1,frac(radial+distort*.1)).r;
+  float ring=pow(saturate(radius/max(.001,_EffectParams2.x)),max(.1,_EffectParams2.y));
+  return float4(_EffectColor1.rgb*tint.rgb,tint.a*sampled.r*sampled.a*noise*ring);
+ }
+ if(_MaterialEffect>14.5&&_MaterialEffect<15.5){
+  float2 n1=tex2D(_EffectTex1,frac(localUv+float2(0,-_EffectParams.x*.1))).rg-.5;
+  float2 n2=tex2D(_EffectTex2,frac(localUv+float2(_EffectParams.x*.07,0))).rg-.5;
+  float2 position=localUv+(n1+n2)*_EffectParams.y;
+  sampled=tex2D(_MainTex,position)*tint;sampled.a*=MeterInside(position);
+ }
+ if(_MaterialEffect>15.5&&_MaterialEffect<16.5){
+  float elapsed=fmod(_EffectParams.x,max(.01,_EffectParams.z));
+  float travel=elapsed*_EffectParams.y;
+  float sweep=1-smoothstep(.03,.2,abs(localUv.x-localUv.y*.3-(frac(travel)*1.6-.3)));
+  sampled.a*=sweep*step(travel,max(1,_EffectParams.w));
  }
  return sampled;
 }

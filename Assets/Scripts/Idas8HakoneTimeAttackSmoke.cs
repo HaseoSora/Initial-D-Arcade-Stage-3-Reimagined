@@ -10,11 +10,11 @@ public sealed class Idas8HakoneTimeAttackSmoke : MonoBehaviour {
     [DllImport("Idas3Unity",CallingConvention=CallingConvention.Cdecl)] static extern int Idas3SceneModeFlowValue(int field);
     [DllImport("Idas3Unity",CallingConvention=CallingConvention.Cdecl)] static extern int Idas3SceneGetPreRaceStatus(ref Idas3PreRaceSmoke.PreRaceStatus status);
     static bool IntroCameraCheck => Array.IndexOf(Environment.GetCommandLineArgs(),"-imported-intro-camera-check")>=0;
-    static bool SpecialStage=>Array.IndexOf(Idas3CourseCatalog.Packs,packName)>=2;
+    static bool SpecialStage=>Array.IndexOf(Idas3CourseCatalog.Packs,packName)>=2&&Array.IndexOf(Idas3CourseCatalog.Packs,packName)<=5;
     static string output,packName="HAKONE";static Idas8HakoneTimeAttackSmoke active;
     Idas3SceneGame host;int pulse;bool accelerate;
     public static bool Configure(ref string saves){
-        var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"-enna-ta-smoke");if(at>=0)packName="ENNA";else{at=Array.IndexOf(args,"-sadamine-ta-smoke");if(at>=0)packName="SADAMINE";else at=Array.IndexOf(args,"-hakone-ta-smoke");}if(at<0){at=Array.IndexOf(args,"-special-stage-ta-smoke");if(at<0)return false;if(at+2>=args.Length)throw new ArgumentException("Supply a pack and diagnostic directory");packName=args[++at];if(Array.IndexOf(Idas3CourseCatalog.Packs,packName)<3)throw new ArgumentException("Unknown Special Stage pack");}
+        var args=Environment.GetCommandLineArgs();int tsubaki=Array.IndexOf(args,"-tsubaki-ta-smoke");if(tsubaki>=0){packName="TSUBAKI";args=(string[])args.Clone();args[tsubaki]="-hakone-ta-smoke";}int at=Array.IndexOf(args,"-enna-ta-smoke");if(at>=0)packName="ENNA";else{at=Array.IndexOf(args,"-sadamine-ta-smoke");if(at>=0)packName="SADAMINE";else at=Array.IndexOf(args,"-hakone-ta-smoke");}if(at<0){at=Array.IndexOf(args,"-special-stage-ta-smoke");if(at<0)return false;if(at+2>=args.Length)throw new ArgumentException("Supply a pack and diagnostic directory");packName=args[++at];if(Array.IndexOf(Idas3CourseCatalog.Packs,packName)<3)throw new ArgumentException("Unknown Special Stage pack");}
         if(at+1>=args.Length)throw new ArgumentException("Supply a new Hakone TA diagnostic directory");
         output=Path.GetFullPath(args[at+1]);if(Directory.Exists(output))throw new IOException("Diagnostic directory must be new");
         Directory.CreateDirectory(output);saves=Path.Combine(output,"userdata");Directory.CreateDirectory(saves);

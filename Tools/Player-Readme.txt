@@ -1,4 +1,11 @@
-0.3.95-community-replays.36
+0.3.95-community-replays.37
+TSUBAKI LINE, PERSONAL-BEST GHOSTS AND SOUND ROOM
+Tsubaki Line now supports all directions and conditions, with corrected signs/scenery and leaderboard support. Uses Stage 3 Akina handling.
+Settings > Gameplay > Time Attack Ghost shows your save's fastest recorded run for the course, direction and weather. Complete a new run to create a ghost for an older time.
+Added 26 Season 5 tachometers, 34 ornaments and 74 race songs. Sound Room includes previews, seeking, search, collections and favorites, while retaining Auto and custom music. Audio controls reach 200%; music levels and authored loop points are corrected.
+Only this version can submit new times. Existing records and season 2 remain available. Changed-file patches support .20 through .36.
+
+PREVIOUS UPDATE (.36)
 GRADED DRIFT LIGHTS AND IMPORTED-COURSE FIXES
 Restored four-color drift lamps and glow/blink animations across 82 tachometers. Deeper sustained slides raise the level, with stable timing across frame rates.
 Fixed Sadamine foliage flicker, repeated grounded car/camera bouncing and overlapping direction-specific fences/gates. Corrected Hakone/Sadamine road shadows. Vocaloid waveforms now extend outside the dial rim.
@@ -28,7 +35,7 @@ Provide your original Initial D Arcade Stage 3 GDS-0033 dump in the rom folder b
 No original ROM is included or downloaded. First launch creates rom/README.txt if needed. Updates and Full Repair preserve your ROM files and do not replace a missing or invalid dump.
 
 COMMUNITY TIME ATTACK
-Only 0.3.95-community-replays.36 can submit new times. After updating, complete a new Time Attack; queued runs from older builds are no longer eligible. Existing published times, replay downloads and the current season remain available.
+Only 0.3.95-community-replays.37 can submit new times. After updating, complete a new Time Attack; queued runs from older builds are no longer eligible. Existing published times, replay downloads and the current season remain available.
 Both online players need this version. Updates use a smaller changed-file patch when available for the installed version. Saves, settings, replays, custom music and locally supplied ROM files are preserved.
 
 FIXES INCLUDED FROM .28

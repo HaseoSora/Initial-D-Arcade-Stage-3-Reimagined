@@ -196,7 +196,7 @@ public sealed class Idas3PauseMenu : MonoBehaviour
     private bool Modal=>bindingChoice||pending!=Command.None||options.DisplayConfirmationPending||(bindings!=null&&bindings.IsCapturing);
     private int BindingFirstSelection=>controllerDevices!=null?2:1;
     private bool DeviceRowSelected=>controllerDevices!=null&&selection==1;
-    private int Rows=>tab==7?12:tab==6?4:tab==5?2:tab==0?5:tab==4?4:tab==2?10:tab==1?8:bindings!=null?10+BindingFirstSelection-1:0;
+    private int Rows=>tab==7?12:tab==6?4:tab==5?2:tab==0?5:tab==4?4:tab==2?11:tab==1?8:bindings!=null?10+BindingFirstSelection-1:0;
     private static int Wrap(int value,int count)=>(value%count+count)%count;
     private void Update(){
         double now=Time.realtimeSinceStartupAsDouble;options?.Tick(now);
@@ -281,11 +281,11 @@ public sealed class Idas3PauseMenu : MonoBehaviour
             return;
         }
         if(tab==0){
-            if(row==0)v.masterVolume=Mathf.Clamp01(v.masterVolume+direction*.05f);
-            if(row==1)v.musicVolume=Mathf.Clamp01(v.musicVolume+direction*.05f);
-            if(row==2)v.engineVolume=Mathf.Clamp01(v.engineVolume+direction*.05f);
-            if(row==3)v.tireVolume=Mathf.Clamp01(v.tireVolume+direction*.05f);
-            if(row==4)v.effectsVolume=Mathf.Clamp01(v.effectsVolume+direction*.05f);
+            if(row==0)v.masterVolume=Mathf.Clamp(v.masterVolume+direction*.05f,0,Idas3GameOptions.MaximumVolume);
+            if(row==1)v.musicVolume=Mathf.Clamp(v.musicVolume+direction*.05f,0,Idas3GameOptions.MaximumVolume);
+            if(row==2)v.engineVolume=Mathf.Clamp(v.engineVolume+direction*.05f,0,Idas3GameOptions.MaximumVolume);
+            if(row==3)v.tireVolume=Mathf.Clamp(v.tireVolume+direction*.05f,0,Idas3GameOptions.MaximumVolume);
+            if(row==4)v.effectsVolume=Mathf.Clamp(v.effectsVolume+direction*.05f,0,Idas3GameOptions.MaximumVolume);
         }else if(tab==7){
             if(row==0){OpenHudCustomization();return;}
             if(row==1){OpenHudEditor();return;}row-=2;
@@ -307,6 +307,7 @@ public sealed class Idas3PauseMenu : MonoBehaviour
             if(row==0)v.defaultCamera=Wrap(v.defaultCamera+direction,CameraModes.Length);
             if(row==8)v.discordPresence=!v.discordPresence;
             if(row==9)v.aiDifficulty=Wrap(v.aiDifficulty+direction,3);
+            if(row==10)v.timeAttackGhost=!v.timeAttackGhost;
             if(row==1)v.showFps=!v.showFps;
             if(row==2)v.muteWhenUnfocused=!v.muteWhenUnfocused;
             if(row==3)v.controllerResponse=Wrap(v.controllerResponse+direction,ControllerResponses.Length);
@@ -501,15 +502,16 @@ public sealed class Idas3PauseMenu : MonoBehaviour
             ChoiceRow(3,"CONTROLLER RESPONSE",ControllerResponses[v.controllerResponse]);
             SliderRow(4,"STEERING DEADZONE",v.SteeringDeadzone,.3f,value=>v.SteeringDeadzone=value);
             SliderRow(5,"STEERING SMOOTHING",v.steeringSmoothing,1,value=>v.steeringSmoothing=value);
-            Text(new Rect(290,395,294,27),"FULL TUNE",label);
-            if(Button(new Rect(595,394,387,29),"999999 POINTS + UPGRADES",selection==7,FullTuneAvailable)){selection=7;queued=Command.FullTune;}
-            Text(new Rect(290,429,294,27),"GAME UPDATES",label);
-            if(Button(new Rect(595,428,387,29),Updates?.ButtonLabel??"CHECK FOR UPDATES",selection==8,AttractOptions&&Updates!=null&&Updates.CanActivate)){selection=8;Updates.Activate();}
+            Text(new Rect(290,377,294,27),"FULL TUNE",label);
+            if(Button(new Rect(595,376,387,29),"999999 POINTS + UPGRADES",selection==7,FullTuneAvailable)){selection=7;queued=Command.FullTune;}
+            Text(new Rect(290,408,294,27),"GAME UPDATES",label);
+            if(Button(new Rect(595,407,387,29),Updates?.ButtonLabel??"CHECK FOR UPDATES",selection==8,AttractOptions&&Updates!=null&&Updates.CanActivate)){selection=8;Updates.Activate();}
             ChoiceRow(8,"DISCORD RICH PRESENCE",v.discordPresence?"ON":"OFF");
             ChoiceRow(9,"AI DRIVER DIFFICULTY",new[]{"NORMAL","HARD (+5% PACE)","EXPERT (+10% PACE)"}[v.aiDifficulty]);
+            ChoiceRow(10,"TIME ATTACK GHOST",v.timeAttackGhost?"ON":"OFF");
             string help=selection==7?(FullTuneAvailable?"Choose a save, then a make and car for upgrades.":"Finish the current screen and leave online play to use Full Tune."):
                 selection==8?(!AttractOptions?"Return to the title screen to check for updates.":Updates?.Message??"Update checking is unavailable."):"Deadzone is saved per controller response. APPLY saves changes.";
-            Text(new Rect(288,536,687,16),selection==10?"Legend of the Streets only. Bunta Challenge keeps its original difficulty.":selection==9?"Shares game activity with the Discord desktop app. APPLY saves your choice.":help,small);
+            Text(new Rect(288,536,687,16),selection==11?"Race your best saved run. New bests are saved with the ghost off, too.":selection==10?"Legend of the Streets only. Bunta Challenge keeps its original difficulty.":selection==9?"Shares game activity with the Discord desktop app. APPLY saves your choice.":help,small);
         }else if(tab==5){
             ChoiceRow(0,"COMMUNITY TIMES",v.communityTimes?"ON":"OFF");
             if(Button(new Rect(595,257,387,35),"VIEW SHARED RANKINGS",selection==2))Application.OpenURL(Idas3CommunityTimes.ServiceUrl);
@@ -544,7 +546,7 @@ public sealed class Idas3PauseMenu : MonoBehaviour
     private void VolumeRow(int row,string name,float value,Action<float> set){
         float y=200+row*56;var rect=new Rect(278,y-5,714,55);if(selection==row+1)Frame(rect,Red);
         Text(new Rect(290,y+5,231,32),name,label);
-        float before=value;value=GUI.HorizontalSlider(new Rect(557,y+13,317,20),value,0,1);
+        float before=value;value=GUI.HorizontalSlider(new Rect(557,y+13,317,20),value,0,Idas3GameOptions.MaximumVolume);
         if(!Mathf.Approximately(before,value)){selection=row+1;set(value);notice="";}
         Text(new Rect(900,y+5,78,33),Mathf.RoundToInt(value*100)+"%",button);
     }
@@ -554,7 +556,7 @@ public sealed class Idas3PauseMenu : MonoBehaviour
     }
     private void SliderRow(int row,string name,float value,float maximum,Action<float> set){
         if(tab==2){
-            float compactY=188+row*34;if(selection==row+1)Frame(new Rect(278,compactY,714,37),Red);
+            float compactY=188+row*31;if(selection==row+1)Frame(new Rect(278,compactY,714,31),Red);
             Text(new Rect(290,compactY+7,294,27),name,label);
             float compactValue=GUI.HorizontalSlider(new Rect(595,compactY+13,279,20),value,0,maximum);
             if(!Mathf.Approximately(compactValue,value)){selection=row+1;set(Mathf.Round(compactValue*100)/100f);notice="";}
@@ -568,8 +570,8 @@ public sealed class Idas3PauseMenu : MonoBehaviour
     }
     private void ChoiceRow(int row,string name,string value){
         if(tab==1||tab==2||tab==7){
-            float compactY=tab==7?180+row*30:tab==2?188+row*34:194+row*38;
-            if(selection==row+1)Frame(new Rect(278,compactY,714,tab==7?29:37),Red);
+            float compactY=tab==7?180+row*30:tab==2?188+row*31:194+row*38;
+            if(selection==row+1)Frame(new Rect(278,compactY,714,tab==7?29:tab==2?31:37),Red);
             Text(new Rect(290,compactY+3,294,27),name,label);
             if(Button(new Rect(595,compactY+2,34,tab==7?27:29),"‹")){selection=row+1;Adjust(row,-1);}
             Text(new Rect(636,compactY+5,304,27),value,button);

@@ -140,7 +140,7 @@ public static class Idas3MeterCatalogChecks
             report.alphaTextureBounds=Idas3MeterLayoutBounds.AlphaTextureCount;
             Require(report.alphaTextureBounds>0,"Offline texture alpha bounds are missing");
             report.catalogChoices=Idas3ArcadeMeterCatalog.Count;
-            Require(report.catalogChoices==88,"Catalog must contain Original and 87 imported meters");
+            Require(report.catalogChoices==114,"Catalog must contain Original and 113 imported meters");
             Require(Idas3ArcadeMeterCatalog.StyleAt(0)==0&&Idas3ArcadeMeterCatalog.StyleAt(1)==1,"Original/Stuttgart IDs changed");
             var ids=new HashSet<int>();var styles=new HashSet<int>();
             for(int index=1;index<report.catalogChoices;++index){
@@ -154,7 +154,7 @@ public static class Idas3MeterCatalogChecks
                     RenderMeter(result);++report.meters;
                 }catch(Exception error){Failure(result,error.ToString());}
             }
-            Require(report.results.Count==87,"Catalog did not enumerate all meters");
+            Require(report.results.Count==113,"Catalog did not enumerate all meters");
             SharedCache();
             Lifecycle();
             report.sampledLayoutStyles=Idas3MeterLayoutBounds.SampledStyleCount;

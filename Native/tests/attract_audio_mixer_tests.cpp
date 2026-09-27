@@ -1,22 +1,24 @@
 #include "audio.h"
 #include "original_stream_gain.h"
+#include "music_loudness.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 using namespace idas3;
 namespace {
 std::uint64_t compared{};
-std::array<short,2> expected(const OriginalAudioClip& clip,double frame,unsigned volume=127,bool sourceVolume=true){
+std::array<short,2> expected(const OriginalAudioClip& clip,double frame,unsigned volume=127,bool sourceVolume=true,float raceGain=1){
     std::array<short,2> out{};const auto at=std::size_t(frame);if(at>=clip.frames())return out;
     const float fraction=float(frame-at);
     for(unsigned c=0;c<2;++c){const auto a=at*clip.channels+std::min(c,clip.channels-1),b=std::min(at+1,clip.frames()-1)*clip.channels+std::min(c,clip.channels-1);
         const float value=(clip.samples[a]+(clip.samples[b]-clip.samples[a])*fraction)/32768.f;
-        const float gain=sourceVolume?original::originalStreamGain(std::uint8_t(volume)):1.f;
-        out[c]=short(std::clamp(value*.38f*gain*.60f,-1.f,1.f)*32767);
+        const float gain=sourceVolume?original::originalStreamGain(std::uint8_t(volume)):raceGain;
+        out[c]=short(std::clamp(value*(sourceVolume?.38f:music_loudness::raceMixGain)*gain*.60f,-1.f,1.f)*32767);
     }return out;
 }
 void check(EngineAudio& audio,const OriginalAudioClip& clip,double& cursor,unsigned volume,unsigned samples,bool sourceVolume=true){
-    for(unsigned i=0;i<samples;++i){const auto actual=audio.renderStereo(800,0,0,0,false),want=expected(clip,cursor,volume,sourceVolume);
+    const float raceGain=sourceVolume?1.f:float(music_loudness::measure<std::int16_t>(clip.samples,clip.sampleRate,clip.channels).gain);
+    for(unsigned i=0;i<samples;++i){const auto actual=audio.renderStereo(800,0,0,0,false),want=expected(clip,cursor,volume,sourceVolume,raceGain);
         if(actual!=want)throw std::runtime_error("Attract PCM/mixer differs at source frame "+std::to_string(cursor));
         if(cursor<clip.frames())cursor+=double(clip.sampleRate)/44100;++compared;
     }
@@ -46,7 +48,7 @@ int main(int argc,char**argv){try{if(argc!=2)throw std::runtime_error("project r
     audio.scene(true,false,false);check(audio,opening,cursor,125,2048);
     audio.attract(~0u,0);silent(audio); // Start accepted; enters selection.
     audio.musicTrack=0;audio.scene(false,false,false);cursor=0;
-    // Ordinary user-selected race music remains on its existing desktop mix.
+    // Race normalization is separate from the unchanged attract source levels.
     check(audio,opening,cursor,127,4096,false);
     audio.scene(true,false,false);silent(audio);
     // Real conquered stream: load is silent until Play, one-shot PCM uses

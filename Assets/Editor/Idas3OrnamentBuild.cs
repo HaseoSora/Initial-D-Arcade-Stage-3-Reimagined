@@ -27,7 +27,7 @@ public static class Idas3OrnamentBuild
         public bool passed, sharedCacheRetained, sharedCacheReleased, offReleased, allDisposed;
         public int checks, models, straps, gpuCases, textures, vertices, triangles, initialResidentTextures, finalResidentTextures, peakResidentTextures;
         public string graphicsDevice, colorSpace, motionChecks;
-        public string coverage = "280 actual source models with all four assigned chain families. Five production GPU poses per model: front, maximum left/right pendulum angles, 45 degree yaw and menu preview angle. Pixel checks distinguish the ornament body from its strap, require transparent margins, verify movement and detect viewport clipping. Source shader equivalence and original native assembly transforms are not established by these checks.";
+        public string coverage = "314 actual source models with all four assigned chain families. Five production GPU poses per model: front, maximum left/right pendulum angles, 45 degree yaw and menu preview angle. Pixel checks distinguish the ornament body from its strap, require transparent margins, verify movement and detect viewport clipping. Source shader equivalence and original native assembly transforms are not established by these checks.";
         public List<ModelResult> results = new List<ModelResult>();
         public List<string> errors = new List<string>();
         public List<string> contactSheets = new List<string>();
@@ -176,7 +176,7 @@ public static class Idas3OrnamentBuild
             Require(SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null, "Ornament GPU checks need a graphics device; omit -nographics.");
             Require(RenderMethod != null && OutputProperty != null && PartCountProperty != null && SelectedProperty != null && ResidentProperty != null,
                 "Production renderer QA API has changed.");
-            Require(Idas3OrnamentCatalog.Count == 281 && Idas3OrnamentCatalog.IdAt(0) == 0, "Expected Off and all 280 source ornaments.");
+            Require(Idas3OrnamentCatalog.Count == 315 && Idas3OrnamentCatalog.IdAt(0) == 0, "Expected Off and all 314 source ornaments.");
             var strapIds = new HashSet<int>();
             // Inspect source assets before leasing textures to a live renderer.
             for (int i = 1; i < Idas3OrnamentCatalog.Count; ++i)
@@ -252,7 +252,7 @@ public static class Idas3OrnamentBuild
             report.finalResidentTextures = Resident;
             Require(Resident == report.initialResidentTextures, "Texture resources remain after all renderers were disposed.");
             report.allDisposed = true;
-            report.passed = report.errors.Count == 0 && report.models == 280 && report.gpuCases == 1400;
+            report.passed = report.errors.Count == 0 && report.models == 314 && report.gpuCases == 1570;
         }
 
         void CacheChecks()
@@ -344,7 +344,7 @@ public static class Idas3OrnamentBuild
             FlushSheet();
             File.WriteAllText(Path.Combine(output, "report.json"), JsonUtility.ToJson(report, true));
             var html = new StringBuilder("<!doctype html><meta charset='utf-8'><title>Hanging ornaments GPU audit</title><style>body{background:#111;color:#eee;font:16px Arial;margin:24px}section{display:inline-block;width:340px;vertical-align:top;margin:8px;padding:12px;background:#1c1e22}img{max-width:100%}section img{width:160px;background:repeating-conic-gradient(#252830 0% 25%,#1a1c22 0% 50%) 50%/24px 24px}small{display:block;color:#abb2bf}a{color:#88caff}</style><h1>Actual hanging ornaments</h1><p>Production 3D renders. Left: front. Right: maximum swing. Original native assembly and shader equivalence are not established.</p>");
-            html.Append("<p>").Append(report.models).Append(" / 280 models passed; ").Append(report.gpuCases).Append(" GPU cases. <a href='report.json'>Detailed report</a></p>");
+            html.Append("<p>").Append(report.models).Append(" / 314 models passed; ").Append(report.gpuCases).Append(" GPU cases. <a href='report.json'>Detailed report</a></p>");
             foreach (string contact in report.contactSheets) html.Append("<a href='").Append(contact).Append("'>").Append(contact).Append("</a> ");
             html.Append("<hr>");
             foreach (var result in report.results)

@@ -27,7 +27,8 @@ public static class Idas3OrnamentCatalog
 
     [Serializable] public sealed class MaterialData
     {
-        public string name, texture;
+        public string name, texture, specularTexture, normalTexture;
+        public float specularStrength=1,roughness=.6f;
         public float alphaCutoff;
         public bool doubleSided, transparent;
         public Color tint = Color.white;

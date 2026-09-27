@@ -27,6 +27,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
     private Idas3GameOptions gameOptions;
     private Idas3PauseMenu pauseMenu;
     private Idas3ReplayLibrary replayLibrary;
+    private Idas3TimeAttackGhost timeAttackGhost;
     private Idas3ControlBindings controlBindings;
     private Idas3ControllerDevices controllerDevices = new Idas3ControllerDevices();
     private Idas3WheelFeedback wheelFeedback;
@@ -191,6 +192,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
             var camera = GetComponent<Camera>();
             scene = gameObject.AddComponent<Idas3SceneRenderer>();
             scene.Initialize(camera);
+            timeAttackGhost=gameObject.AddComponent<Idas3TimeAttackGhost>();
             ui = gameObject.AddComponent<Idas3UnityUi>();
             ui.Initialize(camera);
             sound = gameObject.AddComponent<Idas3UnityAudio>();
@@ -225,6 +227,8 @@ public sealed class Idas3SceneGame : MonoBehaviour
             raceMusic.Initialize();
             raceMusicMenu = gameObject.AddComponent<Idas3RaceMusicMenu>();
             raceMusicMenu.Initialize(raceMusic.Entries, raceMusic.State.selectedIndex);
+            raceMusicMenu.ConfigurePlayer(saves);
+            raceMusicMenu.Preview.AudibilityChanged += MusicPreviewChanged;
             CustomMusic=gameObject.AddComponent<Idas3CustomRaceMusic>();
             CustomMusic.Initialize(saves,raceMusicMenu,raceMusic,diagnosticMode?Path.Combine(Path.GetDirectoryName(saves),Idas3CustomRaceMusic.FolderName):null);
             raceMusicMenu.Selected += SelectRaceMusic;
@@ -265,6 +269,11 @@ public sealed class Idas3SceneGame : MonoBehaviour
             }
             if(File.Exists(Path.Combine(sadaminePack,"menu.idastex"))){
                 if(Idas3Native.Idas3SceneRegisterImportedCourse(sadaminePack)!=1)throw new InvalidOperationException(Idas3Native.Error());
+                if(hakone==null)hakone=new GameObject("Imported courses").AddComponent<Idas8HakoneCourse>();
+            }
+            string tsubakiPack=Path.Combine(Application.streamingAssetsPath,"TSUBAKI");
+            if(File.Exists(Path.Combine(tsubakiPack,"menu.idastex"))){
+                if(Idas3Native.Idas3SceneRegisterImportedCourse(tsubakiPack)!=1)throw new InvalidOperationException(Idas3Native.Error());
                 if(hakone==null)hakone=new GameObject("Imported courses").AddComponent<Idas8HakoneCourse>();
             }
             if(importedCourse){
@@ -535,7 +544,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
         var options = Idas3Native.ReadOptions();
         appliedBackgroundMute = values.muteWhenUnfocused && !Focused;
         options.masterGain = appliedBackgroundMute ? 0 : values.masterVolume;
-        options.musicGain = values.musicVolume;
+        options.musicGain = raceMusicMenu!=null&&raceMusicMenu.Preview!=null&&raceMusicMenu.Preview.Playing ? 0 : values.musicVolume;
         options.engineGain = values.engineVolume;
         options.effectsGain = values.effectsVolume;
         if (changeCamera) options.cameraView = (uint)values.defaultCamera;
@@ -559,6 +568,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
         if (Idas3Native.Idas3SceneSetMapSize(values.minimapSize) != 1)
             throw new InvalidOperationException("Could not apply minimap size. " + Idas3Native.Error());
         if(scene!=null)scene.HudOptions=values.Clone();
+        if(timeAttackGhost!=null)timeAttackGhost.ShowGhost=values.timeAttackGhost;
         wheelFeedback?.Stop();
     }
 
@@ -607,7 +617,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
         if (context == 1 && multiplayer.LocalReady) multiplayer.SetReady(false);
         raceMusicMenu.SetSelected(CustomMusic.SelectedId);
         raceMusicMenu.SetOpen(true);
-        raceMusicMenu.SetNotice(context == 1 ? "Your choice plays on your game only." : "Choose the music for your next race.");
+        raceMusicMenu.SetNotice("");
         CustomMusic.RefreshFolder(context);raceMusicMenu.Busy=CustomMusic.Busy;
     }
     private void SelectRaceMusic(int id)
@@ -618,6 +628,13 @@ public sealed class Idas3SceneGame : MonoBehaviour
         if (musicPickerContext == 1 ? !MusicLobbyAllowed : !MusicOpponentAllowed)
         { raceMusicMenu.SetOpen(false); return; }
         if(id==Idas3CustomRaceMusic.AddId){CustomMusic.AddMusic();return;}
+        if(id>=Idas3SoundRoomCatalog.FirstId){
+            int context=musicPickerContext,openVersion=raceMusicMenu.OpenVersion;
+            StartCoroutine(CustomMusic.SelectPackaged(id,context,
+                ()=>ready&&!stopping&&raceMusicMenu.IsOpen&&raceMusicMenu.OpenVersion==openVersion&&(context==1?MusicLobbyAllowed:MusicOpponentAllowed),
+                success=>{if(success){raceMusicMenu.SetSelected(CustomMusic.SelectedId);raceMusicMenu.SetOpen(false);}}));
+            return;
+        }
         if(id>=Idas3CustomRaceMusic.FirstId){if(!CustomMusic.Select(id,musicPickerContext)){raceMusicMenu.SetNotice(CustomMusic.LastError);return;}}
         else {if (!raceMusic.Select(id, musicPickerContext)) { raceMusicMenu.SetNotice(raceMusic.LastError); return; }CustomMusic.ClearSelection();}
         raceMusicMenu.SetSelected(CustomMusic.SelectedId);
@@ -625,7 +642,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
     }
     private void DeleteRaceMusic(int id)
     {
-        if(!ready||stopping||!raceMusicMenu.IsOpen||CustomMusic.Busy||id<Idas3CustomRaceMusic.FirstId)return;
+        if(!ready||stopping||!raceMusicMenu.IsOpen||CustomMusic.Busy||id<Idas3CustomRaceMusic.FirstId||id>=Idas3SoundRoomCatalog.FirstId)return;
         raceMusic.Refresh();
         if(musicPickerContext==1?!MusicLobbyAllowed:!MusicOpponentAllowed){raceMusicMenu.SetOpen(false);return;}
         bool deleted=CustomMusic.Delete(id,musicPickerContext);
@@ -642,14 +659,21 @@ public sealed class Idas3SceneGame : MonoBehaviour
         musicNavigationAxis = 0;
         previousMusicInput = default;
     }
+    private void MusicPreviewChanged(bool playing)
+    {
+        if(!ready||stopping||gameOptions==null)return;
+        var options=Idas3Native.ReadOptions();options.musicGain=playing?0:gameOptions.Current.musicVolume;
+        if(Idas3Native.Idas3SceneApplyOptions(ref options)!=1)Debug.LogWarning("Could not adjust music for the preview.");
+    }
     private bool MusicControlsHeld(Idas3Native.FrameInput raw) =>
         controlBindings.ViewChangeHeld || controlBindings.PauseHeld || controlBindings.OnlineHeld ||
         Held(raw, 13) || Held(raw, 8) || Held(raw, 27) || Held(raw,46) ||
-        (raw.padButtons & 0x7010u) != 0 || Input.GetMouseButton(0);
+        (raw.padButtons & 0xf010u) != 0 || Input.GetMouseButton(0) || Input.GetKey(KeyCode.P);
     private bool UpdateRaceMusic(ref Idas3Native.FrameInput frame, bool bindingBlocked)
     {
         raceMusicMenu.WheelNavigation=controllerDevices.ActiveIsGeneric;
         raceMusicMenu.Busy=CustomMusic.Busy;
+        if(raceMusicMenu.Preview!=null){var values=gameOptions.Current;raceMusicMenu.Preview.GameGain=values.muteWhenUnfocused&&!Focused?0:values.masterVolume*values.musicVolume;}
         raceMusic.Refresh();
         bool opponent = MusicOpponentAllowed, lobby = MusicLobbyAllowed;
         multiplayerMenu.RaceHudActive = (Status.flags & 1u) == 0;
@@ -675,13 +699,19 @@ public sealed class Idas3SceneGame : MonoBehaviour
         }
         if (raceMusicMenu.IsOpen)
         {
+            // Text editing must not trigger mapped brakes, confirmation or custom-song deletion.
+            if(raceMusicMenu.SearchFocused){
+                if(Input.GetKeyDown(KeyCode.Escape)||(raw.padButtons&~previousMusicInput.padButtons&0x2000u)!=0)raceMusicMenu.BlurSearch();
+                previousMusicInput=raw;NeutralizeControls(ref frame);raceMusicMenu.SetContext(opponent,0,hint);return true;
+            }
             if(musicPointer.BlockNavigation(Idas3MenuPointer.Active,MenuNavigationHeld(raw)||Held(raw,46)||(raw.padButtons&0x4000u)!=0)){
                 previousMusicInput=raw;NeutralizeControls(ref frame);
                 raceMusicMenu.SetContext(opponent,0,hint);return true;
             }
             bool pressed(int key) => Held(raw, key) && !Held(previousMusicInput, key);
             uint buttons = raw.padButtons & ~previousMusicInput.padButtons;
-            if (pressed(27) || pressed(8) || (buttons & 0x2000) != 0) raceMusicMenu.Back();
+            if(Input.GetKeyDown(KeyCode.P)||(buttons&0x8000)!=0)raceMusicMenu.TogglePreview();
+            else if (pressed(27) || pressed(8) || (buttons & 0x2000) != 0) raceMusicMenu.Back();
             else if (pressed(13) || (buttons & 0x1000) != 0) raceMusicMenu.Activate();
             else if (pressed(46) || (buttons & 0x4000) != 0) raceMusicMenu.RequestDelete();
             else
@@ -996,6 +1026,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
             throw new InvalidOperationException("Unity scene simulation did not initialize correctly. " + Idas3Native.Error());
         double began = performanceDiagnostics ? Time.realtimeSinceStartupAsDouble : 0;
         scene.ApplyFrame();
+        timeAttackGhost?.ApplyFrame();
         if (performanceDiagnostics) RendererMilliseconds = (float)((Time.realtimeSinceStartupAsDouble - began) * 1000);
         began = performanceDiagnostics ? Time.realtimeSinceStartupAsDouble : 0;
         ui.ApplyFrame();
@@ -1017,6 +1048,9 @@ public sealed class Idas3SceneGame : MonoBehaviour
     {
         if (stopping) return;
         stopping = true;
+        if(timeAttackGhost!=null)timeAttackGhost.ShowGhost=false;
+        raceMusicMenu?.StopPreview();
+        if(CustomMusic!=null)CustomMusic.StopAllCoroutines();
         wheelFeedback?.Dispose();
         if (sound != null) sound.StopOutput();
         multiplayer?.Dispose();

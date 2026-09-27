@@ -90,6 +90,7 @@ public sealed class Idas3RaceMusicSmoke : MonoBehaviour
         yield return Hold(KeyCode.L,.85);Check(host.RaceMusicMenu.IsOpen,"Held mapped Camera did not open picker");
         Check(host.Status.frontendStage==10&&host.RaceMusic.State.opponentEligible!=0,"Picker input confirmed opponent underneath");
         if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-custom-music-check")>=0){yield return CheckCustomMusic();Finish(true,null);yield break;}
+        if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-sound-room-check")>=0){yield return CheckSoundRoom();Finish(true,null);yield break;}
         yield return Capture("opponent-picker");yield return CheckStageFilters();
         int previous=host.RaceMusic.State.activeIndex;
         for(int track=102;track<=116;++track){
@@ -109,6 +110,48 @@ public sealed class Idas3RaceMusicSmoke : MonoBehaviour
         yield return CheckCountdownAudio(116,"singleplayer");Finish(true,null);
     }
     private bool ReturnCheck=>Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-music-return-check")>=0;
+    private IEnumerator CheckSoundRoom()
+    {
+        var menu=host.RaceMusicMenu;yield return MusicIdle();
+        var audioOptions=host.GameOptions;audioOptions.BeginEdit();
+        audioOptions.Draft.masterVolume=2;audioOptions.Draft.musicVolume=2;audioOptions.Draft.engineVolume=2;audioOptions.Draft.tireVolume=2;audioOptions.Draft.effectsVolume=2;
+        Check(audioOptions.ApplyDraft(),"200% audio settings could not apply");yield return Frames(3);
+        var boosted=Idas3Native.ReadOptions();
+        Check(boosted.masterGain==2&&boosted.musicGain==2&&boosted.engineGain==2&&boosted.effectsGain==2&&Idas3Native.Idas3SceneGetTireVolume()==2,"Native audio settings capped the 200% boost");
+        Check(menu.VisibleTrackCount==192,"Sound Room must retain the native catalog and add only 74 Season 5 race songs");
+        StageFilter(11);Check(menu.VisibleTrackCount==74,"Season 5 race-song count");
+        HighlightTrack(2000);menu.RequestDelete();Check(!menu.DeleteConfirmationOpen,"Packaged songs must not be deletable");
+        menu.Search("ロキ");Check(menu.VisibleTrackCount==1,"Japanese song search");menu.Search("");HighlightTrack(2000);
+        menu.ToggleFavorite();Check(File.ReadAllText(Path.Combine(root,"userdata","sound-room.json")).Contains("arcade5.A_ONE_01"),"Favorite saved by stable key");
+        int original=host.RaceMusic.State.selectedIndex;float originalGain=Idas3Native.ReadOptions().musicGain;
+        menu.TogglePreview();yield return Until(()=>menu.Preview.Playing,20,"Season 5 preview could not play");
+        Check(menu.Preview.GameGain==4,"Preview did not receive boosted Music and Master levels");
+        Check(menu.Preview.NormalizationGain>0&&menu.Preview.NormalizationGain<.9f,"Season 5 preview loudness was not balanced");
+        yield return Delay(.2);Check(menu.Preview.Position>0&&menu.Preview.Duration>29&&menu.Preview.Duration<31,"Preview should advance through a thirty-second excerpt");
+        Check(Idas3Native.ReadOptions().musicGain==0&&host.RaceMusic.State.selectedIndex==original,"Preview should duck native music without changing the race song");
+        menu.Preview.Seek(12);Check(menu.Preview.Position>=11.8f,"Preview seeking");
+        menu.TogglePreview();Check(!menu.Preview.Playing&&Math.Abs(Idas3Native.ReadOptions().musicGain-originalGain)<.001f,"Pause should restore the music volume");
+        menu.TogglePreview();yield return Frames(3);Check(menu.Preview.Playing&&menu.Preview.Position>=11.8f,"Preview resume should retain the seek position");
+        yield return Capture("sound-room-season5");
+        menu.Navigate(1);Check(!menu.Preview.Playing,"Changing the highlighted song must stop its preview");
+        menu.TogglePreview();menu.Back();yield return Delay(.2);Check(!menu.IsOpen&&!menu.Preview.Playing&&!menu.Preview.Loading,"Closing while loading must not leave a preview playing");
+        yield return Hold(KeyCode.L,.85);yield return MusicIdle();StageFilter(3);HighlightTrack(1);menu.TogglePreview();
+        yield return Until(()=>menu.Preview.Playing,15,"Original Arcade Stage song preview");
+        Check(menu.Preview.NormalizationGain>0&&menu.Preview.NormalizationGain<.7f,"Original song preview loudness was not balanced");menu.StopPreview();
+        StageFilter(11);HighlightTrack(2000);menu.Activate();yield return MusicIdle();host.RaceMusic.Refresh();
+        Check(!menu.IsOpen&&host.CustomMusic.SelectedId==2000&&host.RaceMusic.State.selectedIndex==-2,"Full Season 5 song did not commit through the actual native race mixer");
+        Check(File.ReadAllText(Path.Combine(root,"userdata","custom-music","library.json")).Contains("arcade5.A_ONE_01"),"Selected song was not persisted by stable key");
+        yield return Hold(KeyCode.L,.85);yield return MusicIdle();StageFilter(11);HighlightTrack(2001);menu.Activate();menu.Back();menu.SetOpen(true);yield return MusicIdle();
+        Check(host.CustomMusic.SelectedId==2000&&!menu.Preview.Playing,"Closing and immediately reopening during full-song loading must retain the previous song");menu.Back();
+        var restored=host.gameObject.AddComponent<Idas3CustomRaceMusic>();
+        restored.Initialize(Path.Combine(root,"userdata"),menu,host.RaceMusic,host.CustomMusic.FolderPath);
+        yield return Until(()=>!restored.Busy,30,"Packaged song restore did not complete");
+        Check(restored.SelectedId==2000&&restored.LastError==null,"Full song selection failed to restore");Destroy(restored);
+        yield return Pulse(13);double wait=Time.realtimeSinceStartupAsDouble+45;
+        for(int frame=0;ReadPresentation().phase==0&&Time.realtimeSinceStartupAsDouble<wait;++frame){if(frame%12==0)padPulse=0x10;yield return null;}
+        Check(ReadPresentation().phase==1,"Season 5 race did not reach showcase");
+        yield return CheckCountdownAudio(-2,"sound-room");
+    }
     [Serializable] private sealed class CustomSongSnapshot {public string file,title,sourceFile;public int rate,channels,samples;}
     [Serializable] private sealed class CustomLibrarySnapshot {public string selected;public List<CustomSongSnapshot> songs;}
     private CustomLibrarySnapshot ReadCustomLibrary()=>JsonUtility.FromJson<CustomLibrarySnapshot>(File.ReadAllText(Path.Combine(root,"userdata","custom-music","library.json")));
@@ -233,7 +276,7 @@ public sealed class Idas3RaceMusicSmoke : MonoBehaviour
         HighlightTrack(CustomId("Imported MP3"));menu.Activate();yield return Frames(3);host.RaceMusic.Refresh();
         Check(!menu.IsOpen&&host.RaceMusic.State.selectedIndex==-2&&library.SelectedTitle=="Imported MP3","Surviving custom song could not be selected after deletion");
         yield return Hold(KeyCode.L,.85);Check(menu.IsOpen,"Surviving custom selection could not reopen picker");yield return MusicIdle();menu.ShowCustom();yield return Capture("custom-music-picker");
-        Check(menu.DiagnosticStageLabelsFit,"Ten music tabs overlap");menu.Back();yield return Frames(5);
+        if(Array.IndexOf(Environment.GetCommandLineArgs(),"-idas3-music-no-capture")<0)Check(menu.DiagnosticStageLabelsFit,"Sound Room sidebar labels clip");menu.Back();yield return Frames(5);
         yield return Pulse(13);double deadline=Time.realtimeSinceStartupAsDouble+45;
         for(int frame=0;ReadPresentation().phase==0&&Time.realtimeSinceStartupAsDouble<deadline;++frame){if(frame%12==0)padPulse=0x10;yield return null;}
         Check(ReadPresentation().phase==1,"Custom music race did not reach showcase");
@@ -273,10 +316,10 @@ public sealed class Idas3RaceMusicSmoke : MonoBehaviour
         HighlightTrack(track);host.RaceMusicMenu.Activate();
     }
     private void HighlightTrack(int track){var menu=host.RaceMusicMenu;for(int i=0;i<menu.VisibleTrackCount&&menu.HighlightedTrackId!=track;++i)menu.Navigate(1);Check(menu.HighlightedTrackId==track,"Track absent from actual filtered picker list: "+track);}
-    private void StageFilter(int stage){var menu=host.RaceMusicMenu;for(int i=0;i<11&&menu.StageFilter!=stage;++i)menu.NavigateHorizontal(1);Check(menu.StageFilter==stage,"Could not select Stage"+stage+" filter");}
+    private void StageFilter(int stage){var menu=host.RaceMusicMenu;for(int i=0;i<12&&menu.StageFilter!=stage;++i)menu.NavigateHorizontal(1);Check(menu.StageFilter==stage,"Could not select Stage"+stage+" filter");}
     private int LongestTrack(int stage){int id=-1,length=-1;foreach(var e in host.RaceMusic.Entries)if(e.stage==stage&&e.title.Length>length){id=e.id;length=e.title.Length;}return id;}
     private IEnumerator CheckStageFilters(){
-        var menu=host.RaceMusicMenu;Check(menu.StageFilter==0&&menu.VisibleTrackCount==118,"All Tracks does not show117 songs and the custom importer");
+        var menu=host.RaceMusicMenu;Check(menu.StageFilter==0&&menu.VisibleTrackCount==192,"All Songs does not show the native choices, 74 Season 5 songs and custom importer");
         yield return Frames(6);yield return PadHorizontal(-1);Check(menu.StageFilter==9,"Controller left did not wrap All Tracks to Custom");
         yield return PadHorizontal(1);Check(menu.StageFilter==0,"Controller right did not wrap Custom to All Tracks");
         int[] starts={0,13,19,1,30,44,58,72,86,0,102},counts={117,6,11,12,14,14,14,14,16,1,15};
@@ -358,16 +401,16 @@ public sealed class Idas3RaceMusicSmoke : MonoBehaviour
     {
         if(picture==null)return false;
         var safe=Screen.safeArea;if(safe.width<=0||safe.height<=0)safe=new Rect(0,0,picture.width,picture.height);
-        float scale=Mathf.Min(1.5f,Mathf.Min(safe.width/848f,safe.height/640f));
-        float left=safe.x+(safe.width-800*scale)*.5f;
-        float top=picture.height-safe.yMax+(safe.height-592*scale)*.5f;
+        float scale=Mathf.Min(1.5f,Mathf.Min(safe.width/1160f,safe.height/704f));
+        float left=safe.x+(safe.width-1120*scale)*.5f;
+        float top=picture.height-safe.yMax+(safe.height-664*scale)*.5f;
         var pixels=picture.GetPixels32();
         // Sample the wide plain red strip above the title. Check both readback
         // orientations, tightly at that strip; dim lobby panels cannot match.
-        for(int offset=3;offset<=7;++offset)for(int flip=0;flip<2;++flip){
+        for(int offset=1;offset<=2;++offset)for(int flip=0;flip<2;++flip){
             int row=Mathf.RoundToInt(top+offset*scale);if(flip==0)row=picture.height-1-row;
             row=Mathf.Clamp(row,0,picture.height-1);int red=0,total=0;
-            for(int logicalX=10;logicalX<790;logicalX+=5){
+            for(int logicalX=10;logicalX<1110;logicalX+=5){
                 int x=Mathf.Clamp(Mathf.RoundToInt(left+logicalX*scale),0,picture.width-1);var color=pixels[row*picture.width+x];++total;
                 if(color.r>120&&color.g<100&&color.b<100&&color.r>color.g*2&&color.r>color.b*2)++red;
             }

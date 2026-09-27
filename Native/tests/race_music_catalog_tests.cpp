@@ -22,6 +22,7 @@
 #include "original_audio_dsp_runtime.h"
 #include "original_oneshot_playback.h"
 #include "music_catalog.h"
+#include "music_loudness.h"
 // Only the PCM cursor is accessed privately. Bounded sample-window checks
 // deliberately seek past leading silence; no game or audio device is started.
 // Dependencies are included first so this cannot rewrite their private fields.
@@ -145,7 +146,7 @@ void catalog(){
     check(clampMusicTrack(102)==102&&clampMusicTrack(116)==116&&clampMusicTrack(117)==116&&clampMusicTrack(std::numeric_limits<int>::max())==116,"Upper saved-index clamp is stale");
 }
 
-std::array<short,2> referenceSample(const OriginalAudioClip& clip,double cursor){
+std::array<short,2> referenceSample(const OriginalAudioClip& clip,double cursor,float gain){
     std::array<short,2> result{};
     const auto frame=std::size_t(cursor);const float fraction=float(cursor-frame);
     for(unsigned channel=0;channel<2;++channel){
@@ -153,7 +154,7 @@ std::array<short,2> referenceSample(const OriginalAudioClip& clip,double cursor)
         const auto next=clip.looping&&clip.loopEnd&&frame+1>=clip.loopEnd?clip.loopStart:std::min(frame+1,clip.frames()-1);
         const auto b=next*clip.channels+std::min(channel,clip.channels-1);
         const float song=(clip.samples[a]+(clip.samples[b]-clip.samples[a])*fraction)/32768.f;
-        result[channel]=short(std::clamp(song*.38f*.60f,-1.f,1.f)*32767);
+        result[channel]=short(std::clamp(song*music_loudness::raceMixGain*gain*.60f,-1.f,1.f)*32767);
     }
     return result;
 }
@@ -162,9 +163,10 @@ void compareWindow(EngineAudio& audio,const OriginalAudioClip& clip,std::size_t 
     // This is a test-only seek, not a user-facing seek API. Starting at an
     // independently chosen PCM window makes leading silence immaterial.
     audio.musicFrame=double(start);double expectedCursor=double(start);std::uint64_t audible=0;
+    const float gain=float(music_loudness::measure<std::int16_t>(clip.samples,clip.sampleRate,clip.channels).gain);
     for(unsigned i=0;i<count;++i){
         const auto actual=audio.renderStereo(800,0,0,0,false);
-        check(actual==referenceSample(clip,expectedCursor),label+": race mixer PCM/rate/channel/headroom mismatch");
+        check(actual==referenceSample(clip,expectedCursor,gain),label+": race mixer PCM/rate/channel/headroom mismatch");
         if(actual[0]||actual[1])++audible;
         expectedCursor+=double(clip.sampleRate)/44100;
         const auto end=clip.looping&&clip.loopEnd?clip.loopEnd:clip.frames();

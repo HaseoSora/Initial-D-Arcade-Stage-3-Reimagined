@@ -7,6 +7,7 @@ using UnityEngine;
 // supply a fake platform to exercise validation, persistence and display expiry.
 public sealed class Idas3GameOptions
 {
+    public const float MaximumVolume=2;
     [Serializable] public sealed class Values
     {
         public int version=1;
@@ -26,6 +27,7 @@ public sealed class Idas3GameOptions
         public bool discordPresence=true;
         public bool communityTimes=true;
         public bool replayTimeAttack=true,replayOnline,replayLegend;
+        public bool timeAttackGhost=true;
         public bool TimeAttackReplayRequired=>communityTimes||replayTimeAttack;
         public int rainDetail,importedSceneryDetail;
         public int hudMeterStyle; // Stable catalog ID: 0 = original, 1 = Stuttgart.
@@ -265,7 +267,7 @@ public sealed class Idas3GameOptions
         if(File.Exists(file))File.Replace(temporary,file,file+".previous");else File.Move(temporary,file);
     }
     private void EnsureInitialized(){if(current==null||file==null)throw new InvalidOperationException("Options have not been initialized.");}
-    private static float Volume(float value)=>float.IsNaN(value)||float.IsInfinity(value)?1:Math.Max(0,Math.Min(1,value));
+    private static float Volume(float value)=>float.IsNaN(value)||float.IsInfinity(value)?1:Math.Max(0,Math.Min(MaximumVolume,value));
     public static Values Normalize(Values source){
         if(source==null)throw new ArgumentNullException(nameof(source));var value=source.Clone();value.version=1;
         value.masterVolume=Volume(value.masterVolume);value.musicVolume=Volume(value.musicVolume);
@@ -329,7 +331,7 @@ public sealed class Idas3GameOptions
     public static bool Equivalent(Values a,Values b)=>a!=null&&b!=null&&
         a.masterVolume==b.masterVolume&&a.musicVolume==b.musicVolume&&a.engineVolume==b.engineVolume&&a.effectsVolume==b.effectsVolume&&a.tireVolume==b.tireVolume&&a.audioSettingsVersion==b.audioSettingsVersion&&
         !DisplayChanged(a,b)&&a.vSync==b.vSync&&a.frameRateLimit==b.frameRateLimit&&a.antiAliasing==b.antiAliasing&&
-        a.aiDifficulty==b.aiDifficulty&&a.defaultCamera==b.defaultCamera&&a.controllerResponse==b.controllerResponse&&
+        a.aiDifficulty==b.aiDifficulty&&a.defaultCamera==b.defaultCamera&&a.controllerResponse==b.controllerResponse&&a.timeAttackGhost==b.timeAttackGhost&&
         a.steeringSettingsVersion==b.steeringSettingsVersion&&a.steeringDeadzoneGamepad==b.steeringDeadzoneGamepad&&
         a.steeringDeadzonePrevious==b.steeringDeadzonePrevious&&a.steeringDeadzoneWheel==b.steeringDeadzoneWheel&&
         a.steeringSmoothing==b.steeringSmoothing&&

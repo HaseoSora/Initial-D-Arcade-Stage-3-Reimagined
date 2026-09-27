@@ -33,7 +33,7 @@ internal sealed class Idas3RaceMusicCatalog
         for(int i=0;i<State.count;++i){
             // Keep native IDs stable for existing saves and original audio.
             if(ReadText(i,0)=="stage3.01_gamble_rumble")continue;
-            entries.Add(new Idas3RaceMusicMenu.Entry{id=i,title=ReadText(i,1),artist=ReadText(i,2),stage=Idas3SceneGetRaceMusicStage(i)});
+            entries.Add(Idas3SoundRoomCatalog.Decorate(new Idas3RaceMusicMenu.Entry{id=i,key=ReadText(i,0),title=ReadText(i,1),artist=ReadText(i,2),stage=Idas3SceneGetRaceMusicStage(i)}));
         }
         Entries=entries.ToArray();
     }

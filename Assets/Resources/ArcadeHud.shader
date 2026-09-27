@@ -7,7 +7,7 @@ Shader "Idas3/Arcade HUD" {
   #pragma fragment frag
   #include "UnityCG.cginc"
   #include "ArcadeHudImported.cginc"
-  sampler2D _MainTex;float4 _Canvas;float _Fill,_Brake,_AlphaOnly;
+  float4 _Canvas;float _Fill,_Brake,_AlphaOnly;
   struct app {float4 vertex:POSITION;float2 uv:TEXCOORD0;float4 color:COLOR;};
   struct fragdata {float4 pos:SV_POSITION;float2 uv:TEXCOORD0;float4 color:COLOR;};
   fragdata vert(app i){fragdata o;o.pos=float4(2*i.vertex.x/_Canvas.x-1,1-2*i.vertex.y/_Canvas.y,0,1);o.pos.y*=_ProjectionParams.x;o.uv=i.uv;o.color=i.color;return o;}

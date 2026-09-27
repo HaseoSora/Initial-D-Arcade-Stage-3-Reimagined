@@ -15,17 +15,18 @@ public sealed class Idas3CustomRaceMusic : MonoBehaviour
 {
     internal const int AddId=-100,FirstId=1000;
     public const string FolderName="Custom Music";
-    public const string ReadmeText="CUSTOM MUSIC\n\nPlace MP3, OGG or WAV files in this folder, then open Select BGM > CUSTOM.\nYou can also use ADD MUSIC in the game. DELETE removes the song from this library and folder; files imported from elsewhere are left untouched.\n\nUp to 64 songs. Maximum 100 MB per file, 10 minutes, mono/stereo at up to 48 kHz.\nMusic stays on this PC and is not sent to other players.\n";
+    public const string ReadmeText="CUSTOM MUSIC\n\nPlace MP3, OGG or WAV files in this folder, then open Sound Room > Custom music.\nYou can also use ADD MUSIC in the game. DELETE removes the song from this library and folder; files imported from elsewhere are left untouched.\n\nUp to 64 songs. Maximum 100 MB per file, 10 minutes, mono/stereo at up to 48 kHz.\nMusic stays on this PC and is not sent to other players.\n";
     const int MaxSamples=32*1024*1024;
     [Serializable] internal sealed class Song {public string file,title,sourceFile,sourceHash;public int rate,channels,samples;public long sourceBytes,sourceModifiedUtcTicks;}
-    [Serializable] sealed class Library {public string selected;public List<Song> songs=new List<Song>();}
+    [Serializable] sealed class Library {public string selected,selectedPackaged;public List<Song> songs=new List<Song>();}
     Library library=new Library();string folder;Idas3RaceMusicMenu menu;Idas3RaceMusicCatalog catalog;int pickerContext;
     internal bool Busy {get;private set;}
     internal string LastError {get;private set;}
     internal string FolderPath {get;private set;}
-    internal int SelectedId {get {int i=library.songs.FindIndex(s=>s.file==library.selected);return catalog.State.selectedIndex==-2&&i>=0?FirstId+i:catalog.State.selectedIndex;}}
-    internal string SelectedTitle {get {int i=library.songs.FindIndex(s=>s.file==library.selected);return catalog.State.selectedIndex==-2&&i>=0?library.songs[i].title:catalog.SelectedTitle;}}
+    internal int SelectedId {get {var t=Idas3SoundRoomCatalog.Find(library.selectedPackaged);if(catalog.State.selectedIndex==-2&&t!=null)return t.id;int i=library.songs.FindIndex(s=>s.file==library.selected);return catalog.State.selectedIndex==-2&&i>=0?FirstId+i:catalog.State.selectedIndex;}}
+    internal string SelectedTitle {get {var t=Idas3SoundRoomCatalog.Find(library.selectedPackaged);if(catalog.State.selectedIndex==-2&&t!=null)return t.title;int i=library.songs.FindIndex(s=>s.file==library.selected);return catalog.State.selectedIndex==-2&&i>=0?library.songs[i].title:catalog.SelectedTitle;}}
     [DllImport("Idas3Unity",CallingConvention=CallingConvention.Cdecl)] static extern int Idas3SceneSetCustomRaceMusic([In] short[] samples,int count,int rate,int channels,int context);
+    [DllImport("Idas3Unity",CallingConvention=CallingConvention.Cdecl)] static extern int Idas3SceneSetCustomRaceMusicLoop([In] short[] samples,int count,int rate,int channels,int context,int loopStart,int loopEnd);
     internal void Initialize(string saveRoot,Idas3RaceMusicMenu view,Idas3RaceMusicCatalog original,string musicFolder=null){
         folder=Path.Combine(saveRoot,"custom-music");menu=view;catalog=original;
         FolderPath=Path.GetFullPath(musicFolder??Path.Combine(Path.GetDirectoryName(Application.dataPath),FolderName));
@@ -39,6 +40,8 @@ public sealed class Idas3CustomRaceMusic : MonoBehaviour
         }catch(Exception){library=new Library();LastError="Custom music library could not be opened.";}
         try{EnsureMusicFolder();}catch(Exception){LastError="The Custom Music folder could not be opened.";}
         RefreshMenu();
+        var packaged=Idas3SoundRoomCatalog.Find(library.selectedPackaged);
+        if(packaged!=null&&packaged.id>=Idas3SoundRoomCatalog.FirstId)StartCoroutine(SelectPackaged(packaged.id,2,null,null));
     }
     bool Valid(Song s)=>s!=null&&Guid.TryParseExact(Path.GetFileNameWithoutExtension(s.file),"N",out _)&&s.file==Path.GetFileName(s.file)&&s.file.EndsWith(".pcm")&&s.samples>0&&s.samples<=MaxSamples&&(s.channels==1||s.channels==2)&&s.samples%s.channels==0&&s.rate>=8000&&s.rate<=48000&&s.samples/s.channels<=s.rate*600&&!string.IsNullOrWhiteSpace(s.title)&&s.title.Length<=100;
     void Save(){
@@ -48,8 +51,9 @@ public sealed class Idas3CustomRaceMusic : MonoBehaviour
     }
     void RefreshMenu(){
         var entries=new List<Idas3RaceMusicMenu.Entry>(catalog.Entries);
+        foreach(var t in Idas3SoundRoomCatalog.Packaged)entries.Add(Idas3SoundRoomCatalog.Entry(t));
         entries.Add(new Idas3RaceMusicMenu.Entry{id=AddId,stage=9,title="ADD MUSIC…",artist="Import an MP3, OGG or WAV file from this PC"});
-        for(int i=0;i<library.songs.Count;i++)entries.Add(new Idas3RaceMusicMenu.Entry{id=FirstId+i,stage=9,title=library.songs[i].title,artist="Custom music · saved on this PC"});
+        for(int i=0;i<library.songs.Count;i++){var s=library.songs[i];entries.Add(new Idas3RaceMusicMenu.Entry{id=FirstId+i,key="custom."+s.file,stage=9,title=s.title,artist="Custom music",collection="Custom",duration=(float)s.samples/s.channels/s.rate,pcmPath=Path.Combine(folder,s.file),pcmRate=s.rate,pcmChannels=s.channels});}
         menu.ReplaceCatalog(entries.ToArray(),SelectedId);
     }
     void SetBusy(bool value){Busy=value;menu.Busy=value;}
@@ -113,7 +117,7 @@ public sealed class Idas3CustomRaceMusic : MonoBehaviour
                 string staged=path+".deleted-"+Guid.NewGuid().ToString("N");
                 File.Move(path,staged);moved.Add(new KeyValuePair<string,string>(path,staged));
             }
-            library=new Library{selected=previous.selected==song.file?null:previous.selected,songs=new List<Song>(previous.songs)};
+            library=new Library{selected=previous.selected==song.file?null:previous.selected,selectedPackaged=previous.selectedPackaged,songs=new List<Song>(previous.songs)};
             library.songs.RemoveAt(index);Save();committed=true;
             foreach(var pair in moved)try{File.Delete(pair.Value);}catch(Exception){Debug.LogWarning("A removed custom music cache file could not be cleaned up.");}
             RefreshMenu();menu.SetNotice("Song deleted.");return true;
@@ -126,19 +130,55 @@ public sealed class Idas3CustomRaceMusic : MonoBehaviour
             Error("The song could not be deleted. Check that its files are writable.");return false;
         }finally{SetBusy(false);}
     }
-    internal void ClearSelection(){library.selected=null;try{Save();}catch(Exception){menu.SetNotice("Song selected, but the preference could not be saved.");}}
+    internal void ClearSelection(){library.selected=library.selectedPackaged=null;try{Save();}catch(Exception){menu.SetNotice("Song selected, but the preference could not be saved.");}}
     internal bool Select(int id,int context){
         LastError=null;if(Busy){Error("Wait for the music import to finish.");return false;}int i=id-FirstId;
         try{
             if(i<0||i>=library.songs.Count)throw new InvalidDataException();var song=library.songs[i];
             if(!Apply(song,context)){LastError="Choose custom music before starting the race.";return false;}
-            library.selected=song.file;Save();catalog.Refresh();return true;
+            library.selected=song.file;library.selectedPackaged=null;Save();catalog.Refresh();return true;
         }catch(Exception){LastError="This custom song is unavailable. Import it again or choose another song.";return false;}
     }
     bool Apply(Song song,int context){
         string path=Path.Combine(folder,song.file);if(!Valid(song)||!PlainFile(path)||new FileInfo(path).Length!=song.samples*2L)throw new InvalidDataException();
         byte[] data=File.ReadAllBytes(path);short[] pcm=new short[song.samples];Buffer.BlockCopy(data,0,pcm,0,data.Length);
         return Idas3SceneSetCustomRaceMusic(pcm,pcm.Length,song.rate,song.channels,context)==1;
+    }
+    internal IEnumerator SelectPackaged(int id,int context,Func<bool> allowed,Action<bool> completed)
+    {
+        if(Busy){completed?.Invoke(false);yield break;}
+        var track=Idas3SoundRoomCatalog.Find(id);if(track==null){Error("This song is unavailable.");completed?.Invoke(false);yield break;}
+        SetBusy(true);LastError=null;menu.StopPreview();menu.SetNotice("Loading song…");bool success=false;AudioClip clip=null;
+        try{
+            using(var request=UnityWebRequestMultimedia.GetAudioClip(new Uri(Idas3SoundRoomCatalog.AssetPath(track.audio)).AbsoluteUri,AudioType.OGGVORBIS)){
+                request.timeout=60;((DownloadHandlerAudioClip)request.downloadHandler).streamAudio=false;
+                yield return request.SendWebRequest();
+                if(allowed!=null&&!allowed())yield break;
+                if(request.result!=UnityWebRequest.Result.Success){Error("This song could not be loaded.");yield break;}
+                clip=DownloadHandlerAudioClip.GetContent(request);
+                long count=(long)clip.samples*clip.channels;
+                if(clip.channels<1||clip.channels>2||clip.frequency<8000||clip.frequency>48000||count<1||count>MaxSamples){Error("This song has an unsupported audio format.");yield break;}
+                var pcm=new short[(int)count];var block=new float[65536];int blocks=0;
+                for(int offset=0;offset<pcm.Length;offset+=block.Length){
+                    if(!clip.GetData(block,offset/clip.channels)){Error("This song could not be decoded.");yield break;}
+                    int take=Math.Min(block.Length,pcm.Length-offset);
+                    for(int n=0;n<take;++n)pcm[offset+n]=(short)Mathf.RoundToInt(Mathf.Clamp(block[n],-1,1)*32767);
+                    if(++blocks%4==0){yield return null;if(allowed!=null&&!allowed())yield break;}
+                }
+                // Authored positions are sample frames, independent of channel count.
+                // Convert from the source rate if Unity decoded at a different rate.
+                int loopStart=0,loopEnd=0;
+                if(track.loopSampleRate>0){
+                    loopStart=(int)Math.Round((double)track.loopStart*clip.frequency/track.loopSampleRate);
+                    loopEnd=(int)Math.Round((double)track.loopEnd*clip.frequency/track.loopSampleRate);
+                    if(loopStart<0||loopEnd<=loopStart||loopEnd>clip.samples){Error("This song has invalid loop points.");yield break;}
+                }
+                if(Idas3SceneSetCustomRaceMusicLoop(pcm,pcm.Length,clip.frequency,clip.channels,context,loopStart,loopEnd)!=1){Error("Choose music before starting the race.");yield break;}
+                library.selected=null;library.selectedPackaged=track.key;catalog.Refresh();success=true;
+                try{Save();}catch(Exception){menu.SetNotice("Song selected, but the preference could not be saved.");}
+                menu.SetSelected(SelectedId);
+            }
+        }finally{if(clip!=null)Destroy(clip);SetBusy(false);completed?.Invoke(success);}
     }
     internal void AddMusic(){if(!Busy)StartCoroutine(PickAndImport());}
     IEnumerator PickAndImport(){
@@ -195,7 +235,7 @@ public sealed class Idas3CustomRaceMusic : MonoBehaviour
                     song.sourceFile=Path.GetFileName(source);
                     var sourceInfo=new FileInfo(source);song.sourceBytes=sourceInfo.Length;song.sourceModifiedUtcTicks=sourceInfo.LastWriteTimeUtc.Ticks;
                     using(var output=new BinaryWriter(File.Create(dest)))foreach(float value in data){if(float.IsNaN(value)||float.IsInfinity(value))throw new InvalidDataException("Invalid audio samples.");output.Write((short)Mathf.Clamp(Mathf.RoundToInt(value*32767),-32768,32767));}
-                    library=new Library{selected=previous.selected,songs=new List<Song>(previous.songs)};
+                    library=new Library{selected=previous.selected,selectedPackaged=previous.selectedPackaged,songs=new List<Song>(previous.songs)};
                     if(replacement>=0){library.songs[replacement]=song;if(previous.selected==previous.songs[replacement].file)library.selected=song.file;}
                     else library.songs.Add(song);
                     catalog.Refresh();

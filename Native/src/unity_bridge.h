@@ -68,7 +68,7 @@ typedef struct Idas3RivalStatus {
     uint64_t musicSamplePosition;
 } Idas3RivalStatus;
 // User output/camera options, independent of source physics and saved tuning.
-// Gains are finite0..1, default1. Engine includes driving tire audio. Group
+// Gains are finite0..2, default1. Tire gain has its own setter. Group
 // gains scale dry audio and new DSP sends; existing shared reverb tails decay.
 typedef struct Idas3Options {
     uint32_t size,version;         //sizeof=40, version1
@@ -106,6 +106,13 @@ typedef struct Idas3PresentationTiming {
     float alpha;
     uint32_t flags; // 1 active ornament sampling, 2 frozen; alpha=1 when frozen
 } Idas3PresentationTiming;
+// Personal-best Time Attack presentation only; no opponent simulation.
+typedef struct Idas3GhostState {
+    uint32_t size,version,flags,finishTicks6000,car; // flags: 1 available, 2 visible
+    float x,y,z,yaw,pitch,roll;
+    uint32_t reserved;
+} Idas3GhostState;
+IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneGetGhostState(Idas3GhostState* state);
 // Read-only pre-race presentation state; the driving ABI remains unchanged.
 typedef struct Idas3PreRaceStatus {
     uint32_t size,version;         //sizeof=104, version1
@@ -188,6 +195,11 @@ IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneSetRaceMusicTrack(int index,in
 // PCM16 interleaved mono/stereo. Context2 restores a preference at startup;
 // otherwise the same opponent/lobby eligibility checks as built-in songs apply.
 IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneSetCustomRaceMusic(const short* samples,int count,int rate,int channels,int context);
+// Authored sample-frame loop bounds; end is exclusive. Both zero retain whole-file looping.
+IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneSetCustomRaceMusicLoop(const short* samples,int count,int rate,int channels,int context,int loopStart,int loopEnd);
+// In-place preview normalization; positive applied gain, zero on invalid PCM.
+// Independent of scene lifetime and safe on a host worker thread.
+IDAS3_UNITY_EXPORT float IDAS3_UNITY_CALL Idas3NormalizeMusicPreview(float* samples,int count,int rate,int channels);
 // Scene-mode/main-thread only. Invalid inputs leave options unchanged. Options
 // are host-persisted; these calls never write settings/profiles themselves.
 IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneGetOptions(Idas3Options* options);

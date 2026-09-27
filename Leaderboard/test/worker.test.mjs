@@ -8,7 +8,7 @@ const source=readFileSync(new URL('../src/worker.mjs',import.meta.url),'utf8').r
 const worker=(await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))).default;
 let db,env;
 const secret='a'.repeat(64),device='b'.repeat(64);
-beforeEach(async()=>{db?.close();db=new DatabaseSync(':memory:');db.exec(readFileSync(new URL('../migrations/0001_leaderboard.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0002_imported_times.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0003_replays.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0004_replay_chunks.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0005_enna_skyline.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0006_special_stage_courses.sql',import.meta.url),'utf8'));const wrap=(sql,args=[])=>({bind(...args){return wrap(sql,args.map(v=>v instanceof ArrayBuffer?new Uint8Array(v):v));},async first(){return db.prepare(sql).get(...args)||null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:r};}});env={RULESET:'d3-community-v1',ADMIN_KEY_SHA256:await sha(secret),DB:{prepare:wrap,async batch(queries){db.exec('BEGIN');try{const out=[];for(const q of queries)out.push(await q.run());db.exec('COMMIT');return out;}catch(e){db.exec('ROLLBACK');throw e;}}}};for(const key of ['PUBLIC_LIMIT','WRITE_LIMIT','AUTH_LIMIT'])env[key]={async limit(){return {success:true};}};});
+beforeEach(async()=>{db?.close();db=new DatabaseSync(':memory:');db.exec(readFileSync(new URL('../migrations/0001_leaderboard.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0002_imported_times.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0003_replays.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0004_replay_chunks.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0005_enna_skyline.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0006_special_stage_courses.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0007_tsubaki_line.sql',import.meta.url),'utf8'));const wrap=(sql,args=[])=>({bind(...args){return wrap(sql,args.map(v=>v instanceof ArrayBuffer?new Uint8Array(v):v));},async first(){return db.prepare(sql).get(...args)||null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){const r=db.prepare(sql).run(...args);return {meta:r};}});env={RULESET:'d3-community-v1',ADMIN_KEY_SHA256:await sha(secret),DB:{prepare:wrap,async batch(queries){db.exec('BEGIN');try{const out=[];for(const q of queries)out.push(await q.run());db.exec('COMMIT');return out;}catch(e){db.exec('ROLLBACK');throw e;}}}};for(const key of ['PUBLIC_LIMIT','WRITE_LIMIT','AUTH_LIMIT'])env[key]={async limit(){return {success:true};}};});
 async function call(path,data,headers={}){return worker.fetch(new Request('https://example.test'+path,{method:data?'POST':'GET',headers:{...(data?{'Content-Type':'application/json'}:{}),...headers},body:data?JSON.stringify(data):undefined}),env);}
 const run=(extra={})=>({id:crypto.randomUUID(),ruleset:'d3-community-v1',epoch:1,condition:0,weather:0,car:0,ticks6000:1200000,nameGlyphs:[162,163,164,221,221],splits:[300000,600000,900000,1200000],manual:1,night:0,points:999999,build:REQUIRED_CLIENT_BUILD,...extra});
 const auth=()=>({Authorization:'Bearer '+device});
@@ -30,14 +30,14 @@ test('Enna downhill/uphill dry/wet upload with replays and appear on separate bo
  }
  const snapshot=await(await call('/api/v1/snapshot?ruleset=d3-community-v1')).json();
  assert.deepEqual(snapshot.courses,COURSES);assert.equal(snapshot.entries.length,4);
- assert.equal((await call('/api/v1/board?condition=30&weather=0')).status,400);
- assert.equal((await uploadReplay(run({condition:30}))).status,400);
+ assert.equal((await call('/api/v1/board?condition=32&weather=0')).status,400);
+ assert.equal((await uploadReplay(run({condition:32}))).status,400);
  assert.equal((await uploadReplay(run({condition:22,build:'0.3.95-enna-preview.1'}))).status,409);
  assert.equal((await call('/api/v1/runs',run({condition:22}),auth())).status,426);
  assert.equal((await uploadReplay(run({condition:22,imported:1}))).status,400);
 });
 test('Special Stage identities preserve six directions and dry/wet boards and replay metadata',async()=>{
- assert.deepEqual(COURSES.slice(12),['Myogi (Special Stage)','Usui (Special Stage)','Momiji Line']);
+ assert.deepEqual(COURSES.slice(12,15),['Myogi (Special Stage)','Usui (Special Stage)','Momiji Line']);
  await call('/api/v1/register',{token:device});
  for(let condition=24;condition<30;++condition)for(const weather of [0,1]){
   const x=run({condition,weather,night:1});
@@ -51,6 +51,22 @@ test('Special Stage identities preserve six directions and dry/wet boards and re
  }
  for(const condition of [0,1,2,3,4,5,8,9,12,13])assert.equal((await(await call(`/api/v1/board?condition=${condition}&weather=0`)).json()).entries.length,0);
 });
+test('Tsubaki has separate downhill/uphill dry/wet boards and matching replay downloads',async()=>{
+ assert.equal(COURSES[15],'Tsubaki Line');
+ await call('/api/v1/register',{token:device});
+ for(const condition of [30,31])for(const weather of [0,1]){
+  const x=run({condition,weather,night:weather});
+  assert.equal((await uploadReplay(x)).status,200);
+  const board=await(await call(`/api/v1/board?condition=${condition}&weather=${weather}`)).json();
+  assert.equal(board.entries.length,1);assert.equal(board.entries[0].id,x.id);
+  const download=await call('/api/v1/replay?id='+x.id);assert.equal(download.status,200);
+  const bytes=new Uint8Array(await download.arrayBuffer()),n=new DataView(bytes.buffer).getUint32(0,true);
+  const meta=JSON.parse(new TextDecoder().decode(bytes.subarray(4,4+n)));
+  assert.equal(meta.condition,condition);assert.equal(meta.weather,weather);
+ }
+ for(const condition of [18,19,20,21,28,29])assert.equal((await(await call(`/api/v1/board?condition=${condition}&weather=0`)).json()).entries.length,0);
+});
+
 test('personal battle and incomplete recordings cannot upload',async()=>{
  await call('/api/v1/register',{token:device});
  for(const extra of [{mode:1},{mode:2},{outcome:1},{outcome:2},{opponentBytes:100}])assert.equal((await uploadReplay(run(extra))).status,400);
@@ -191,16 +207,16 @@ test('viewer download preserves metadata and every pose without installation ide
  assert.equal((await call('/api/admin/replay?id='+crypto.randomUUID()+'&format=package',null,auth)).status,404);
 });
 test('upload build policy accepts only the exact ROM-required release',()=>{
- assert.equal(REQUIRED_CLIENT_BUILD,'0.3.95-community-replays.36');
+ assert.equal(REQUIRED_CLIENT_BUILD,'0.3.95-community-replays.37');
  assert.equal(supportedBuild(REQUIRED_CLIENT_BUILD),true);
- for(const build of ['0.3.95-community-replays.1','0.3.95-community-replays.28','0.3.95-community-replays.29','0.3.95-community-replays.30','0.3.95-community-replays.31','0.3.95-community-replays.32','0.3.95-community-replays.35','0.3.95-community-replays.37','0.3.95-community-replays.360','0.3.96-community-replays.36','0.4.0','1.0.0','0.3.95','0.3.95-community-replays.036','0.3.95-Community-replays.36','0.3.95-community-replays.36-extra','0.3.95-community-replays.36 ','replay-smoke','',null,33])assert.equal(supportedBuild(build),false,String(build));
+ for(const build of ['0.3.95-community-replays.1','0.3.95-community-replays.28','0.3.95-community-replays.29','0.3.95-community-replays.30','0.3.95-community-replays.31','0.3.95-community-replays.32','0.3.95-community-replays.35','0.3.95-community-replays.36','0.3.95-community-replays.38','0.3.95-community-replays.370','0.3.96-community-replays.36','0.4.0','1.0.0','0.3.95','0.3.95-community-replays.037','0.3.95-Community-replays.37','0.3.95-community-replays.37-extra','0.3.95-community-replays.37 ','replay-smoke','',null,33])assert.equal(supportedBuild(build),false,String(build));
  for(const required of ['',null,'invalid','0.3.95-community-replays.*'])assert.equal(supportedBuild(required,required),false);
 });
 test('nonmatching builds are permanently rejected before replay work and without database writes',async()=>{
  await call('/api/v1/register',{token:device});
  env.MIN_CLIENT_BUILD='0.3.95-community-replays.1'; // A stale variable cannot restore the old minimum policy.
  const before=db.prepare('SELECT total_changes() n').get().n;
- for(const build of ['0.3.90-performance.5','0.3.95-community-replays.1','0.3.95-community-replays.28','0.3.95-community-replays.29','0.3.95-community-replays.30','0.3.95-community-replays.31','0.3.95-community-replays.32','0.3.95-community-replays.35','0.3.95-community-replays.37','0.3.96-community-replays.1','0.4.0','0.3.95-community-replays.036']){
+ for(const build of ['0.3.90-performance.5','0.3.95-community-replays.1','0.3.95-community-replays.28','0.3.95-community-replays.29','0.3.95-community-replays.30','0.3.95-community-replays.31','0.3.95-community-replays.32','0.3.95-community-replays.35','0.3.95-community-replays.36','0.3.95-community-replays.38','0.3.96-community-replays.1','0.4.0','0.3.95-community-replays.037']){
   const response=await uploadReplay(run({build}));assert.equal(response.status,409);
   const error=await response.json();assert.equal(error.code,'client_build_required');assert.equal(error.requiredBuild,REQUIRED_CLIENT_BUILD);assert.equal(error.permanent,true);assert.ok(error.error.includes(REQUIRED_CLIENT_BUILD));
  }
@@ -220,7 +236,7 @@ test('configured exact release rejects both sides of its version and is exposed 
  const health=await(await call('/health')).json();assert.equal(health.requiredBuild,REQUIRED_CLIENT_BUILD);
  const snapshot=await(await call('/api/v1/snapshot?ruleset=d3-community-v1')).json();assert.equal(snapshot.requiredBuild,REQUIRED_CLIENT_BUILD);assert.equal(snapshot.epoch,1);
  assert.equal(db.prepare('SELECT total_changes() n').get().n,before);
- for(const build of ['0.3.95-community-replays.32','0.3.95-community-replays.35','0.3.95-community-replays.37'])assert.equal((await uploadReplay(run({build}))).status,409);
+ for(const build of ['0.3.95-community-replays.32','0.3.95-community-replays.35','0.3.95-community-replays.36','0.3.95-community-replays.38'])assert.equal((await uploadReplay(run({build}))).status,409);
  assert.equal((await uploadReplay(run())).status,200);
 });
 

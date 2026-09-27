@@ -41,6 +41,12 @@ internal sealed class Idas3MeterDriftAnimation
         if(curve.owner?.name=="Cantera"&&curve.property=="Rotation"&&Mode(curve)==1)return false;
         int wanted=opacity<.9999f?1:blinking?2:4;
         if((available&wanted)==0)wanted=4;
+        // Street has entry/exit and blink tracks but no Stay track. Its
+        // green/orange/red widgets start transparent in the editor. Hold the
+        // completed entry keys for a steady slide instead of that hidden state.
+        if(wanted==4&&(available&4)==0&&(available&1)!=0){
+            progress=1;return Mode(curve)==1;
+        }
         if(Mode(curve)!=wanted)return false;
         if(wanted==1){
             progress=opacity;

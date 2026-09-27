@@ -9,6 +9,16 @@ internal static class Idas3Native
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int Idas3SceneSetSaveCarLevels([In] uint[] levels, int count);
     private const string Library = "Idas3Unity";
+    [StructLayout(LayoutKind.Sequential, Pack=8)]
+    internal struct GhostState {
+        public uint size,version,flags,finishTicks6000,car;
+        public float x,y,z,yaw,pitch,roll;
+        public uint reserved;
+    }
+    [DllImport(Library,CallingConvention=CallingConvention.Cdecl)]
+    internal static extern int Idas3SceneGetGhostState(ref GhostState state);
+    [DllImport(Library,CallingConvention=CallingConvention.Cdecl)]
+    internal static extern float Idas3NormalizeMusicPreview([In,Out] float[] samples,int count,int rate,int channels);
     [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] internal static extern int Idas3SceneShowImportedCourseMenu([MarshalAs(UnmanagedType.LPUTF8Str)] string root);
     [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] internal static extern int Idas3SceneRegisterImportedCourse([MarshalAs(UnmanagedType.LPUTF8Str)] string root);
     [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] internal static extern int Idas3SceneStartImportedCourse([MarshalAs(UnmanagedType.LPUTF8Str)] string root,int reverse);

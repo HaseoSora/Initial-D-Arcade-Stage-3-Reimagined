@@ -28,7 +28,7 @@ public sealed class Idas3SceneSmoke : MonoBehaviour
     private Idas3RivalAudioProbe rivalAudio;
     private readonly List<RivalObservation> rivalObservations=new List<RivalObservation>();
     private int perfCourse=3,perfWarmup=180,perfFrames=600,perfMainRenders,perfAllRenders;
-    private int PerformanceCourse => (host.Status.flags&IdasSpecialStageEnnaCourse.SceneFlag)!=0 ? IdasSpecialStageEnnaCourse.CourseId(host.Status.flags) : (host.Status.flags&16384u)!=0 ? ((host.Status.flags&524288u)!=0?10:9) : host.Status.course;
+    private int PerformanceCourse => (host.Status.flags&IdasSpecialStageEnnaCourse.SceneFlag)!=0 ? IdasSpecialStageEnnaCourse.CourseId(host.Status.flags) : (host.Status.flags&16384u)!=0 ? Idas8HakoneCourse.CourseId(host.Status.flags) : host.Status.course;
     [DllImport("Idas3Unity",CallingConvention=CallingConvention.Cdecl)] private static extern int Idas3SceneModeFlowValue(int field);
     [DllImport("Idas3Unity",CallingConvention=CallingConvention.Cdecl)] private static extern int Idas3SceneReplayCaptureDiagnostic(int enabled);
     private Camera perfMainCamera;

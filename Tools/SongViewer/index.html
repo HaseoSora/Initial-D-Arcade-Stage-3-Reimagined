@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Sound Room — Initial D</title>
+  <style>__STYLE__</style>
+</head>
+<body>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zm6 0h4v14h-4z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.5 5.5C17 2 13 4 12 6 11 4 7 2 3.5 5.5 0 9 4 14 12 20c8-6 12-11 8.5-14.5Z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 5 10 7L5 19Z" fill="currentColor" stroke="none"/><path d="M19 5v14"/></symbol>
+    <symbol id="i-previous" viewBox="0 0 24 24"><path d="m19 5-10 7 10 7Z" fill="currentColor" stroke="none"/><path d="M5 5v14"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4 5 9H2v6h3l6 5Z"/><path d="M15 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="M11 4 5 9H2v6h3l6 5Zm5 5 6 6m0-6-6 6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17V5l11-2v12M9 9l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></symbol>
+  </defs></svg>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">D</span><div><strong>INITIAL D</strong><span>THE ARCADE</span></div></div>
+      <span class="edition">SEASON <b>05</b></span>
+    </header>
+    <header class="heading">
+      <div><p class="eyebrow">MUSIC LIBRARY</p><h1>SOUND ROOM<span>.</span></h1></div>
+      <p class="library-total"><strong>__TRACK_COUNT__</strong> tracks <span>/</span> <strong>__COLLECTION_COUNT__</strong> collections</p>
+    </header>
+    <div class="workspace">
+      <aside class="sidebar enhanced-only" aria-label="Music collections">
+        <p class="section-label">YOUR LIBRARY</p>
+        <button class="library-nav active" data-library="all" aria-pressed="true"><svg><use href="#i-music"/></svg><span>All tracks</span><b>__TRACK_COUNT__</b></button>
+        <button class="library-nav" data-library="favorites" aria-pressed="false"><svg><use href="#i-heart"/></svg><span>Favorites</span><b id="favorite-count">0</b></button>
+        <p class="section-label collection-label">COLLECTIONS</p>
+        <nav id="collections" aria-label="Filter by collection">__COLLECTIONS__</nav>
+        <div class="sidebar-footer"><span class="red-rule"></span><span>INITIAL D<br>MUSIC ARCHIVE</span></div>
+      </aside>
+      <main class="library" id="library">
+        <div class="toolbar enhanced-only">
+          <label class="search"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="search" type="search" placeholder="Find a song or artist" aria-label="Search songs and artists" autocomplete="off"></label>
+          <label class="sort"><span class="sr-only">Sort tracks</span><select id="sort"><option value="source">Game order</option><option value="title">Title A–Z</option><option value="duration">Shortest first</option></select></label>
+        </div>
+        <div class="mobile-filters enhanced-only"><label><span class="sr-only">Collection</span><select id="mobile-category">__MOBILE_OPTIONS__</select></label><button id="mobile-favorites" class="icon-button" aria-label="Show favorites" aria-pressed="false"><svg><use href="#i-heart"/></svg></button></div>
+        <div class="list-heading"><h2 id="list-title">All tracks</h2><span id="result-count">__TRACK_COUNT__ tracks</span></div>
+        <div class="track-list" id="track-list">__ROWS__</div>
+        <div class="empty" id="empty" hidden><svg><use href="#i-search"/></svg><h3 id="empty-title">No tracks found</h3><p id="empty-message">Try another title or artist.</p><button id="clear-search">Clear filters</button></div>
+      </main>
+      <aside class="player enhanced-only" aria-label="Song preview player">
+        <div class="player-heading"><span class="section-label">ON DECK</span><span class="preview-badge" id="preview-badge">30 SEC PREVIEW</span></div>
+        <div class="cover-wrap"><img id="cover" src="__INITIAL_ART__" alt="The Arcade original album artwork"><span class="cover-corner">01 / __TRACK_COUNT__</span></div>
+        <div class="track-details"><p id="player-category">THE ARCADE ORIGINALS</p><h2 id="player-title">Dive into the SPEED</h2><p id="player-artist">A-One · Vo: AXEL.K</p></div>
+        <div class="timeline"><div class="waveform" id="waveform" aria-hidden="true"></div><label class="sr-only" for="seek">Preview position</label><input type="range" id="seek" min="0" max="30" value="0" step="0.1" aria-valuetext="0:00 of 0:30"><div class="timestamps"><span id="elapsed">0:00</span><span id="preview-end">0:30</span></div></div>
+        <div class="transport"><button id="previous" class="icon-button" aria-label="Previous song"><svg><use href="#i-previous"/></svg></button><button id="play" class="play-main" aria-label="Play preview"><svg><use href="#i-play"/></svg></button><button id="next" class="icon-button" aria-label="Next song"><svg><use href="#i-next"/></svg></button></div>
+        <div class="player-bottom"><button id="mute" class="icon-button" aria-label="Mute preview"><svg><use href="#i-volume"/></svg></button><label class="sr-only" for="volume">Preview volume</label><input id="volume" type="range" min="0" max="1" value="0.6" step="0.01"><button id="favorite" class="icon-button" aria-label="Add song to favorites" aria-pressed="false"><svg><use href="#i-heart"/></svg></button></div>
+        <p id="playback-status" class="player-status" role="status" aria-live="polite">Ready to preview</p>
+        <audio id="player-audio" preload="none"></audio>
+      </aside>
+    </div>
+    <footer class="page-footer"><span>INITIAL D / SOUND ROOM</span><span class="enhanced-only">Up to 30 seconds per preview</span></footer>
+  </div>
+  <script type="application/json" id="track-data">__TRACKS__</script>
+  <script>__SCRIPT__</script>
+</body>
+</html>

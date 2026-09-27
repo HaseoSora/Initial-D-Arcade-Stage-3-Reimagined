@@ -7,7 +7,7 @@ using Curve=Idas3ArcadeMeterCatalog.Curve;
 
 // The import contains source layout, artwork and serialized animation channels.
 // This adapter supplies current telemetry; it does not execute Unreal bytecode.
-internal sealed class Idas3ImportedMeter : IDisposable
+internal sealed partial class Idas3ImportedMeter : IDisposable
 {
     sealed class LoadedTexture {public Texture2D value;public int users;}
     static readonly Dictionary<string,LoadedTexture> pool=new Dictionary<string,LoadedTexture>();
@@ -145,6 +145,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
         if(lanternAnimation.TryProgress(c,out progress))return true;
         if(data.version>=3&&Contains(c.animation,"DriftLamp"))return driftAnimation.TryProgress(c,out progress);
         if(Contains(c.animation,"Gear_Change"))return animationState.TryProgress(c,out progress);
+        if(Contains(c.animation,"Eye_Loop"))return animationState.TryProgress(c,out progress);
         if(Contains(c.animation,"LED"))return false; // Authored LED programs use the material clock.
         if(Contains(c.animation,"Corner")||Contains(c.animation,"LowLamp"))return false;
         // A warning can tint the main dial (Classic), rather than a separate
@@ -152,6 +153,9 @@ internal sealed class Idas3ImportedMeter : IDisposable
         // applying Stay at phase zero would leave the dial red all the time.
         if(Contains(c.animation,"RevLamp")&&(!shiftLights||Idas3ArcadeHud.ShiftWarning(data)<=0))
             return !Contains(c.animation,"Stay");
+        if(current?.id>=90&&Contains(c.animation,"RevLamp")&&Contains(c.animation,"Stay")){
+            progress=LoopProgress(c,seconds);return true;
+        }
         // The duplicated brake animation is an unused copy of the accelerator
         // sweep, conflicting with the canonical left-hand brake mask.
         if(c.animation=="Anim_BrakePin_2_INST")return false;
@@ -187,13 +191,13 @@ internal sealed class Idas3ImportedMeter : IDisposable
             if(layer.switchers!=null)foreach(var choice in layer.switchers)
                 if(led&&choice.name=="LED_Top")continue;
                 else
-                if(choice.index!=(choice.name=="DriftLampColor"?Idas3ArcadeHud.DriftLevel(data):choice.activeIndex)){selected=false;break;}
+                if(choice.index!=(choice.name=="DriftLampColor"||choice.name=="P_DriftLamp"?Idas3ArcadeHud.DriftLevel(data):choice.activeIndex)){selected=false;break;}
             if(!selected)continue;
             Rect ledUv=default;
             if(led&&!materialAnimation.TryLed(layer,out ledUv))continue;
             string role=layer.role??"static";
-            if(gearEffectsOnly&&role!="gearEffect"&&role!="gearRoll"&&!(data.version>=3&&role=="drift"))continue;
-            if(role=="gearEffect"||role=="gearRoll"){
+            if(gearEffectsOnly&&role!="gearEffect"&&role!="gearRoll"&&role!="gearAnimation"&&!(data.version>=3&&role=="drift"))continue;
+            if(role=="gearEffect"||role=="gearRoll"||role=="gearAnimation"){
                 bool playing=false;
                 if(layer.curves!=null)foreach(var curve in layer.curves)
                     if(Contains(curve.animation,"Gear_Change")&&animationState.TryProgress(curve,out _)){playing=true;break;}
@@ -204,6 +208,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
             bool pedalDecoration=meter.id==66&&layer.name.StartsWith("coil_",StringComparison.Ordinal);
             if((role=="accel"||role=="brake")&&!options.hudPedalIndicators&&!pedalDecoration)continue;
             if(role=="low")continue; // No recovered low-rev activation rule.
+            if(role=="revNormal"&&options.hudShiftLights&&Idas3ArcadeHud.ShiftWarning(data)>0)continue;
             float opacity=1;
             if(role=="drift")opacity=Idas3ArcadeHud.LampOpacity(data);
             else if(role=="rev")opacity=options.hudShiftLights?Idas3ArcadeHud.ShiftWarning(data):0;
@@ -292,6 +297,10 @@ internal sealed class Idas3ImportedMeter : IDisposable
             // and rate. Authored artwork and additive blending remain intact.
             if(Contains(layer.materialParent,"M_Blink_Add01."))
                 color.a*=Mathf.Clamp01(Scalar(layer,"Position",0)+Scalar(layer,"Amplitude",1)*Mathf.Sin(seconds*Scalar(layer,"BlinkSpeed",.5f)*Mathf.PI*2))*Scalar(layer,"BlinkOpacity",1);
+            if(Contains(layer.materialParent,"M_Add_Blink.")){
+                float rate=AnimatedScalar(layer,"BlinkSpeed",1,data,seconds,options.hudShiftLights);
+                color.a*=1-Mathf.Clamp01(Scalar(layer,"BlinkOpasity",1))*(.5f-.5f*Mathf.Cos(seconds*rate*Mathf.PI*2));
+            }
             if(!state.visible||color.a<=0)continue;
             matrix*=initial.Local(layer.width*layer.pivotX,layer.height*layer.pivotY).inverse*state.Local(layer.width*layer.pivotX,layer.height*layer.pivotY);
             var uv=layer.uv!=null&&layer.uv.Length==4?new Rect(layer.uv[0],layer.uv[1],layer.uv[2],layer.uv[3]):new Rect(0,0,1,1);
@@ -311,6 +320,8 @@ internal sealed class Idas3ImportedMeter : IDisposable
                 // of render FPS, rather than displaying only its first cell.
                 digit=Mathf.Min(cells-1,Mathf.FloorToInt(Mathf.Repeat(seconds*Scalar(layer,"Speed",1),1)*cells));
             }
+            if(Contains(layer.materialParent,"M_Flipbook_FrameAnime."))
+                digit=Mathf.FloorToInt(Mathf.Repeat(seconds*Scalar(layer,"Frame/1s",24),Math.Max(1,layer.atlasCols*layer.atlasRows)));
             if(digit>=0){
                 int columns=Math.Max(1,layer.atlasCols),rows=Math.Max(1,layer.atlasRows),index=digit+layer.digitOffset;
                 if(index<0||index>=columns*rows)continue;
@@ -349,6 +360,7 @@ internal sealed class Idas3ImportedMeter : IDisposable
             if(role=="drift")++DriftSpriteCount;
             var sprite=new Idas3ArcadeHud.Sprite{texture=texture,rect=new Rect(0,0,layer.width,layer.height),uv=uv,color=color,fill=-1,additive=additive,
                 transformed=true,transform=matrix,gaugeMode=gaugeMode,gauge=gauge,clipped=clipped,clip=clip,mask=mask,maskTransform=maskTransform,radial=radial};
+            ApplySeason5Material(ref sprite,layer,data,seconds,percentage,options.hudShiftLights);
             if(Contains(layer.materialParent,"M_Add_Ball")){
                 sprite.materialEffect=1;
                 sprite.effectParams=new Vector4(Scalar(layer,"S Radius",.2f),Scalar(layer,"M Radius",.3f),Scalar(layer,"L Radius",.5f),Scalar(layer,"Diamond",5));

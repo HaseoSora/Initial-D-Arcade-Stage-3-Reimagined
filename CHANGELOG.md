@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 0.3.95-community-replays.37 - September 27, 2026
+
+This update is required to submit new community Time Attack times.
+
+- Added Tsubaki Line from Arcade Stage 8, with downhill/uphill, day/night and dry/wet conditions, plus leaderboard support. It uses Arcade Stage 3 Akina handling.
+- Corrected Tsubaki sign lettering and texture orientation, and removed overlapping terrain, foliage and barrier faces that caused flickering.
+- Added a blue personal-best Time Attack ghost, with an on/off switch in Settings > Gameplay. Your fastest recorded run is saved separately for each save, course, direction and wet/dry condition. Recording continues with the ghost hidden; complete a new run to create a ghost for an old record that has no trajectory.
+- Added 26 Season 5 tachometers and 34 dangling ornaments, bringing the selection to 113 imported tachometers and 314 ornaments. Included their recovered artwork and supported animations, with updated gear and drift effects on existing meters.
+- Replaced the race music picker with Sound Room: song previews, seeking, title/artist search, collections, sorting, favorites and race-song selection. Automatic music and custom-song import/deletion remain available.
+- Added 74 named Season 5 race songs and restored their authored loop points for seamless race playback.
+- Raised audio controls to 200%, corrected quiet race-music playback and track normalization, and increased music gain by a further 5.6 dB.
+
+Only `.37` can submit new times. Existing leaderboard records, replay downloads and season 2 remain available. Both online players need this version. Changed-file patches support `.20` through `.36`; the full Windows ZIP supports new installations and Full Repair.
+
+A verified original GDS-0033 dump is still required. No ROM, personal saves or custom music are included. Arcade effects are adapted to this game's telemetry; unavailable original-only indicators are not presented as working.
+
 ## 0.3.95-community-replays.36 - September 26, 2026
 
 This update restores graded tachometer drift lights and fixes imported-course visuals.

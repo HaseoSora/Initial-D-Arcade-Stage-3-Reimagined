@@ -3,6 +3,7 @@
 #define NOMINMAX
 #endif
 #include "unity_bridge.h"
+#include "music_loudness.h"
 #include "unity_scene_capture.h"
 #include "unity_audio_output.h"
 #include "unity_ui_capture.h"
@@ -18,6 +19,7 @@
 #include "../tests/online_collision_app_tests.inl"
 #include "../tests/shared_times_app_tests.inl"
 #include "../tests/player_replays_app_tests.inl"
+#include "../tests/time_attack_ghost_app_tests.inl"
 #include "shared_time_import.h"
 #include "../tests/shared_import_app_tests.inl"
 #include "../tests/performance_options_app_tests.inl"
@@ -38,6 +40,7 @@ static_assert(sizeof(Idas3WheelState)==40);
 static_assert(sizeof(Idas3HudTelemetry)==40);
 static_assert(sizeof(Idas3OrnamentTelemetry)==40);
 static_assert(sizeof(Idas3PresentationTiming)==24);
+static_assert(sizeof(Idas3GhostState)==48);
 static_assert(sizeof(Idas3RaceMusicState)==32);
 
 namespace {
@@ -352,6 +355,12 @@ IDAS3_UNITY_EXPORT int IDAS3_UNITY_CALL Idas3SceneModeFlowFixture(int scene){
         if(scene==-12)return runOnlineCollisionAppTests(*r.app)==0?1:0;
         if(scene==-13){const auto result=runHudDriftAppTests(*r.app);publish(r,0);return result==0?1:0;}
         if(scene==-14){const auto result=runImportedRoadPresentationAppTests(*r.app);publish(r,0);return result==0?1:0;}
+        if(scene==-15){
+            const auto result=runTimeAttackGhostAppTests(*r.app);
+            Idas3UiBeginFrame(r.app->renderer.width,r.app->renderer.height);
+            if(!r.app->render(0))throw std::runtime_error(r.app->renderer.error);
+            publish(r,0);return result==0?1:0;
+        }
         if(scene==-5)return runSharedTimeAppTests(*r.app)==0?1:0;
         if(scene==-6)return runSharedImportAppTests(*r.app)==0?1:0;
         if(scene==-7)return runPerformanceOptionsAppTests(*r.app)==0?1:0;
@@ -1087,13 +1096,24 @@ int IDAS3_UNITY_CALL Idas3SceneSetPerformance(int rainDetail){
     if(!r.sceneMode||!r.app||rainDetail<0||rainDetail>1){unityError("Invalid presentation quality options");return 0;}
     r.app->performanceRainDetail=rainDetail;return 1;
 }
+float IDAS3_UNITY_CALL Idas3NormalizeMusicPreview(float* samples,int count,int rate,int channels){
+    if(!samples||count<=0||count>32*1024*1024||rate<8000||rate>192000||channels<1||channels>2||count%channels)return 0;
+    try{return static_cast<float>(idas3::music_loudness::normalize({samples,static_cast<std::size_t>(count)},unsigned(rate),unsigned(channels)).gain);}
+    catch(...){return 0;}
+}
 int IDAS3_UNITY_CALL Idas3SceneSetCustomRaceMusic(const short* samples,int count,int rate,int channels,int context){
+    return Idas3SceneSetCustomRaceMusicLoop(samples,count,rate,channels,context,0,0);
+}
+int IDAS3_UNITY_CALL Idas3SceneSetCustomRaceMusicLoop(const short* samples,int count,int rate,int channels,int context,int loopStart,int loopEnd){
     auto& r=unityRuntime();std::lock_guard lock(r.renderMutex);
     try{
         if(!r.sceneMode||!r.app)throw std::logic_error("Custom music requires initialized scene mode");
         if(!samples||count<1||count>32*1024*1024||(channels!=1&&channels!=2)||count%channels||rate<8000||rate>48000||count/channels>rate*600)
             throw std::invalid_argument("Custom music must be mono/stereo PCM, at most ten minutes and64MiB");
+        if(loopStart<0||loopEnd<0||((loopStart||loopEnd)&&(loopEnd<=loopStart||loopEnd>count/channels)))
+            throw std::invalid_argument("Invalid custom music loop bounds");
         auto clip=std::make_shared<OriginalAudioClip>();clip->sampleRate=rate;clip->channels=channels;clip->looping=true;clip->samples.assign(samples,samples+count);
+        clip->loopStart=std::size_t(loopStart);clip->loopEnd=std::size_t(loopEnd);
         auto& app=*r.app;
         if(context==2){if(!app.menu||app.loadingActive||app.multiplayer.active)throw std::logic_error("Custom music restore requires menus");}
         else app.selectRaceMusic(-1,context);
@@ -1175,6 +1195,19 @@ int IDAS3_UNITY_CALL Idas3SceneGetPresentationTiming(Idas3PresentationTiming* ou
     out->simulationTicks=app.replayPlaybackActive?app.race.ticks:app.vehicle.tick;
     out->flags=app.ornamentPresentationFlags();
     out->alpha=out->flags==1u?app.clock.alpha():1.f;
+    return 1;
+}
+int IDAS3_UNITY_CALL Idas3SceneGetGhostState(Idas3GhostState* out){
+    auto& r=unityRuntime();std::lock_guard lock(r.renderMutex);
+    if(!r.sceneMode||!r.app||!out||out->size!=sizeof(*out))return 0;
+    *out={sizeof(*out),1};const auto& app=*r.app;
+    if(!app.personalGhostContext()||app.personalGhost.replay.frames.empty())return 1;
+    out->flags=1;out->finishTicks6000=app.personalGhost.replay.finishTicks6000;out->car=app.personalGhost.car;
+    if(app.race.phase==RacePhase::Finished||app.race.phase==RacePhase::Ready||
+       app.personalGhostTick()>double(app.personalGhost.replay.frames.back().tick))return 1;
+    const auto pose=app.personalGhost.sample(app.personalGhostTick());out->flags|=2;
+    out->x=pose.position.x;out->y=pose.position.y;out->z=pose.position.z;
+    out->yaw=pose.yaw;out->pitch=pose.detail.pitch;out->roll=pose.detail.roll;
     return 1;
 }
 int IDAS3_UNITY_CALL Idas3SceneSetPaused(int paused){

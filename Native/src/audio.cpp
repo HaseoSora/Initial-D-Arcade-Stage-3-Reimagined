@@ -1,5 +1,6 @@
 #include "audio.h"
 #include "original_stream_gain.h"
+#include "music_loudness.h"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
@@ -14,7 +15,7 @@ EngineAudio::~EngineAudio(){if(output){waveOutReset(output);for(auto& h:headers)
 #endif
 void EngineAudio::setOutputGains(const AudioOutputGains& gains){
     for(const auto value:{gains.master,gains.music,gains.engine,gains.effects,gains.tires})
-        if(!std::isfinite(value)||value<0.f||value>1.f)throw std::invalid_argument("Audio output gain must be finite in0..1");
+        if(!std::isfinite(value)||value<0.f||value>2.f)throw std::invalid_argument("Audio output gain must be finite in0..2");
     outputGains_=gains;
 }
 void EngineAudio::resetOutputQueue(){++outputResetSerial_;
@@ -178,6 +179,8 @@ void EngineAudio::loadMusic(){
     const auto name=musicScene==2?"WIN.bin":musicScene==3?"TIMEUP.bin":musicScene==5?"LOSE.bin":raceMusicCatalog[clampMusicTrack(musicTrack)].relativePath;
     if((musicScene==1||musicScene==4)&&musicTrack==-2&&customRaceMusic)music=*customRaceMusic;
     else music=loadOriginalSpsd(streamRoot/name);
+    if(musicScene==1||musicScene==4)
+        musicGain=static_cast<float>(music_loudness::measure<std::int16_t>(music.samples,music.sampleRate,music.channels).gain);
     musicFrame=0;loadedTrack=musicTrack;
     resetOutputQueue();
 }
@@ -407,6 +410,9 @@ std::array<short,2> EngineAudio::renderStereo(float rpm,float throttle,float spe
             if(!musicPaused&&nativeDsp)wet=nativeDsp->render(dspInput).wet;
             for(const auto bus:dspInput)dspInputEnergy+=double(bus)*bus;
             for(const auto value:wet)dspWetEnergy+=double(value)*value;
+            // Race songs are already loudness-normalized. The legacy 38% bed
+            // level would attenuate them again; retain it only for source cues.
+            const float streamMixGain=musicScene==1||musicScene==4?music_loudness::raceMixGain:.38f;
             for(unsigned channel=0;channel<2;++channel){float song=0;
                 if(play){const auto next=music.looping&&music.loopEnd&&frame+1>=loopEnd?music.loopStart:std::min(frame+1,music.frames()-1);
                     const auto a=frame*music.channels+std::min(channel,music.channels-1),b=next*music.channels+std::min(channel,music.channels-1);const float fraction=float(musicFrame-frame);song=(music.samples[a]+(music.samples[b]-music.samples[a])*fraction)/32768.f;}
@@ -418,9 +424,9 @@ std::array<short,2> EngineAudio::renderStereo(float rpm,float throttle,float spe
                 // Keep the default arithmetic and summation order unchanged.
                 float mixed;
                 if(gains.music==1.f&&gains.engine==1.f&&gains.effects==1.f&&gains.tires==1.f)
-                    mixed=(engine[channel]+song*.38f*musicGain+(selectionPcm[channel]/32768.f)*.38f+
+                    mixed=(engine[channel]+song*streamMixGain*musicGain+(selectionPcm[channel]/32768.f)*.38f+
                         (wet[channel]/32768.f)*.38f+(effectPcm[channel]/32768.f)*.45f)*.60f;
-                else mixed=(engine[channel]*gains.engine+tires*gains.tires+song*.38f*musicGain*gains.music+
+                else mixed=(engine[channel]*gains.engine+tires*gains.tires+song*streamMixGain*musicGain*gains.music+
                     (selectionPcm[channel]/32768.f)*.38f*gains.music+(wet[channel]/32768.f)*.38f+
                     (effectPcm[channel]/32768.f)*.45f*gains.effects)*.60f;
                 if(gains.master!=1.f)mixed*=gains.master;

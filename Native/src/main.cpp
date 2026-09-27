@@ -8,6 +8,7 @@
 #include "ui.h"
 #include "audio.h"
 #include "race_music_selection.h"
+#include "time_attack_ghost.h"
 #include "frontend.h"
 #include "original_legend_menu.h"
 #include "car_catalog.h"
@@ -116,9 +117,9 @@ struct HostInput {
     bool button(WORD b)const{return (pressedButtons&b)!=0;}
 };
 struct App {
-    std::filesystem::path importedCourseRoot,sadamineCourseRoot,ennaCourseRoot;
+    std::filesystem::path importedCourseRoot,sadamineCourseRoot,ennaCourseRoot,tsubakiCourseRoot;
     std::array<std::filesystem::path,3> specialStageCourseRoots;
-    std::filesystem::path& importedRoot(int id){return id>=12?specialStageCourseRoots.at(unsigned(id-12)):id==Frontend::ennaCourse?ennaCourseRoot:id==Frontend::sadamineCourse?sadamineCourseRoot:importedCourseRoot;}
+    std::filesystem::path& importedRoot(int id){return id==15?tsubakiCourseRoot:id>=12?specialStageCourseRoots.at(unsigned(id-12)):id==Frontend::ennaCourse?ennaCourseRoot:id==Frontend::sadamineCourse?sadamineCourseRoot:importedCourseRoot;}
     std::optional<ImportedCourse> importedCourse;
     struct MultiplayerState {
         std::string localName="PLAYER",remoteName="OPPONENT";
@@ -404,7 +405,7 @@ struct App {
     int loadedCourse=-1;
     Course course;VehicleConfig config;VehicleState vehicle{},previous{};
     mutable HudAnalogPresentation hudAnalogPresentation;
-    RaceClock race;Replay recording,best;FixedClock clock;Renderer renderer;Hud hud;EngineAudio audio;HostInput input;
+    RaceClock race;Replay recording,best;TimeAttackGhost personalGhost;FixedClock clock;Renderer renderer;Hud hud;EngineAudio audio;HostInput input;
     int courseIndex=3,profile=0;bool reverse=false,wet=false,night=false,automatic=true;
     bool menu=true,paused=false,active=true,debug=false,showControls=false,running=true,finishedSaved=false,validationMode=false;
     bool challengerNotice=false;
@@ -481,6 +482,17 @@ struct App {
         return course.sample(distance);
     }
     fs::path ghostPath()const{return userdataRoot()/(runKey()+".csv");}
+    fs::path personalGhostPath()const{
+        const auto directory=activeSaveSlot<0?userdataRoot()/"driver_profiles_v1":saveSlots.profileDirectory(unsigned(activeSaveSlot));
+        return TimeAttackGhost::path(directory,importedCourse?importedCourse->id:unsigned(courseIndex),reverse,wet);
+    }
+    bool personalGhostContext()const{
+        return !menu&&!loadingActive&&!battle&&!multiplayer.active&&!replayPlaybackActive&&!extraModeVisitActive()&&
+            !legendVisitActive&&!preRaceDialogueActive&&frontend.gameMode==original::OriginalGameMode::TimeAttack;
+    }
+    double personalGhostTick()const{
+        return std::max(0.,double(race.ticks)-(paused||race.phase!=RacePhase::Running?0.:1.-clock.alpha()));
+    }
     void status(std::string s){message=std::move(s);messageSeconds=5;}
     void configureCar(){
         config=VehicleConfig{};
@@ -1109,7 +1121,7 @@ struct App {
         // (+sin(yaw),+cos(yaw)). Apply the half-turn only at presentation.
         vehicle.yaw=wrapAngle(d.f(0x10)+pi+(authorityRace?authorityYawOffset[multiplayer.config.localSlot]:0.f));
         bodyPitch=-d.f(0x0C);bodyRoll=-d.f(0x14);
-        if(importedCourse&&(importedCourse->id==9||importedCourse->id==10)){
+        if(importedCourse&&!importedCourseDefinition(importedCourse->id).specialStage){
             if(advance)previousImportedActor=importedRoadPresentation.position();
             const auto& road=playerBody.query();
             if(importedCourse->id==10)
@@ -1319,6 +1331,9 @@ struct App {
             race.sectionCapacity=1;for(auto index:originalRace.rules().sectionIndices)if(index>=0)++race.sectionCapacity;race.sectionCapacity=std::min(race.sectionCapacity,4u);}
         raceFeedback.reset(race.remaining6000);
         recording.beginCapture(originalHandling);finishedSaved=false;skids.clear();resultsReady=false;results={};
+        personalGhost=TimeAttackGhost{};
+        if(!battle&&!multiplayer.active&&!replayPlaybackActive&&frontend.gameMode==original::OriginalGameMode::TimeAttack)
+            personalGhost.load(personalGhostPath());
         archiveMode=multiplayer.active?1:battle?2:0;
         archiveThisRace=!replayPlaybackActive&&((archiveMode==0&&(replayRecordingFlags&9))||(archiveMode==1&&(replayRecordingFlags&2))||(archiveMode==2&&!bunta&&(replayRecordingFlags&4)));
         archivePublished=false;
@@ -1970,6 +1985,9 @@ struct App {
                 sharedFinishReplay=recording.sharedBytes(race.elapsed6000);sharedFinishJson=out.str();
             }
             if(race.originalTiming&&!race.timeUp)recording.finishTicks6000=race.elapsed6000;
+            if(resultsReady&&personalGhostContext()&&!race.timeUp&&race.originalTiming&&
+               TimeAttackGhost::saveBest(personalGhostPath(),recording,unsigned(frontend.car))==TimeAttackGhost::Saved::Failed)
+                status("Could not save personal-best ghost");
             if(resultsReady){TimeAttackEntry entry{results.condition,unsigned(wet),results.carId,race.elapsed6000};for(unsigned i=0;i<5;++i)entry.nameGlyphs[i]=std::uint8_t(battleProfile.u(44+4*i));entry.manual=!automatic;entry.night=night;if(importedCourse)std::copy_n(race.sectionTimes6000.begin(),3,entry.intermediate6000.begin());records.record(entry);if(!records.save(userdataRoot()/"time_attack_records_v1.csv"))status("Could not save Time Attack records");}
             if(!recording.save((userdataRoot()/"last_run.csv").string()))status("Could not save complete run telemetry");
             if(!battle&&!race.timeUp&&(bestTime<=0||race.seconds()<bestTime)&&!recording.truncated){if(recording.save(ghostPath().string())){best=recording;bestTime=race.seconds();status("Best run saved with replay telemetry");}else status("Could not save best-run replay");}
@@ -3170,7 +3188,7 @@ struct App {
                 if(aura.visible()){const auto begin=mesh.ranges.size();mesh.originalCar(aura.model(),aura.assembly(),{0,0,0},0);multiplayer.auraRanges[1]=std::uint32_t(mesh.ranges.size()-begin);}
             }
         }
-        // Best-run telemetry remains available for records; Time Attack has no ghost car.
+        // The host draws the personal-best ghost independently of collision and AI.
         drivingEffects.advance(dt,originalHandling&&!menu&&!wet&&courseIndex!=8,paused&&!multiplayer.active,effectCars);
         if(!validationHideDrivingEffects)drivingEffects.append(mesh,camera,target,smokeTextureBase+4,night);
         // Snow/rain and tire spray are scene geometry, depth-tested against cars/scenery
