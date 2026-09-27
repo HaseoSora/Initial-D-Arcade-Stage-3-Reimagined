@@ -156,6 +156,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
             diagnostic = controllerDeviceDiagnostic || diagnostic;
             if (controllerDeviceDiagnostic) controllerDevices = Idas3ControllerDevicesSmoke.CreateProvider();
             diagnostic = Idas3OnlineControllerSmoke.Configure(ref saves) || diagnostic;
+            controllerDevices = Idas3OnlineControllerSmoke.IsolatedProvider() ?? controllerDevices;
             diagnostic = Idas3RaceMusicSmoke.Configure(ref saves) || diagnostic;
             diagnostic = Idas3AttractOptionsSmoke.Configure(ref saves) || diagnostic;
             diagnosticMode = diagnostic || (importedTest && (Array.IndexOf(Environment.GetCommandLineArgs(),"-hakone-smoke")>=0||Array.IndexOf(Environment.GetCommandLineArgs(),"-hakone-menu-smoke")>=0));
@@ -391,7 +392,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
             // An unfocused synthetic neutral sample is not a physical release.
             // Keep capture's release latch until focused hardware is neutral.
             else controlBindings.Poll(physicalKey, physicalPad, Time.realtimeSinceStartupAsDouble,
-                diagnosticPad ? null : controllerDevices.Controls);
+                diagnosticPad ? null : controllerDevices.Controls, diagnosticPad ? null : controllerDevices.RigSamples);
             bool bindingInputBlocked = controlBindings.SuppressInput || controlBindings.IsCapturing;
             multiplayerMenu.ProcessControlInput(controlBindings.RawOnlineHeld, controlBindings.RawPauseHeld,
                 bindingInputBlocked || !Focused || raceMusicMenu.BlocksGameInput || musicReleaseBlocked || pauseMenu.AttractOptions || challenger.Active);
@@ -590,6 +591,7 @@ public sealed class Idas3SceneGame : MonoBehaviour
     {
         wheelFeedback?.Stop();
         if (controlBindings == null) return;
+        Debug.Log("IDAS3 controller input source: "+controllerDevices.ActiveName+"; profile="+controllerDevices.ActiveProfileKey);
         controlBindings.SelectControllerProfile(controllerDevices.ActiveProfileKey,
             controllerDevices.ActiveName, controllerDevices.ActiveIsGeneric);
         controlBindings.ControllerDeviceChanged();

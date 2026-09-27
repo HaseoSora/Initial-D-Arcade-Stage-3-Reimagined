@@ -6,7 +6,7 @@ using UnityEngine;
 
 // This translates host controls into the existing native input ABI. Source
 // steering response, dead zones, pedal curves and physics remain native.
-public sealed class Idas3ControlBindings
+public sealed partial class Idas3ControlBindings
 {
     public enum ActionId { Accelerate, Brake, SteerLeft, SteerRight, ShiftUp, ShiftDown, Camera, Pause, Online, Headlights }
     public enum Slot { Primary, Secondary, Extra, Controller }
@@ -69,8 +69,10 @@ public sealed class Idas3ControlBindings
     private readonly HashSet<string> captureHeldButtons = new HashSet<string>(StringComparer.Ordinal);
     private string activeProfileKey=LegacyProfile;
     private bool genericProfile, awaitingProfileSample;
-    private bool releaseBlocked, captureArmed, releaseKeyboardOnly, controllerReleaseBlocked;
+    private bool releaseBlocked, captureArmed, releaseKeyboardOnly;
     private ushort reconnectHeldButtons;
+    private int reconnectHeldAxes;
+    private readonly HashSet<string> reconnectHeldControls = new HashSet<string>(StringComparer.Ordinal);
     private ActionId captureAction;
     private Slot captureSlot;
     private double captureDeadline;
@@ -86,9 +88,9 @@ public sealed class Idas3ControlBindings
     public string CapturePrompt { get; private set; } = "";
     public string CaptureError { get; private set; }
     public bool SuppressInput => IsCapturing || releaseBlocked;
-    internal bool RawPauseHeld => Held(KeyCode.Escape) || ActionHeld(ActionId.Pause) || (!controllerReleaseBlocked&&(pad.buttons&~reconnectHeldButtons&0x10)!=0);
+    internal bool RawPauseHeld => Held(KeyCode.Escape) || ActionHeld(ActionId.Pause) || ((pad.buttons&~reconnectHeldButtons&0x10)!=0);
     internal bool RawOnlineHeld => Held(KeyCode.F1) || ActionHeld(ActionId.Online) ||
-        (!controllerReleaseBlocked&&current.actions[8].pad==PadInput.None&&string.IsNullOrEmpty(current.actions[8].controlPath)&&(pad.buttons&~reconnectHeldButtons&0x20)!=0);
+        (current.actions[8].pad==PadInput.None&&string.IsNullOrEmpty(current.actions[8].controlPath)&&(pad.buttons&~reconnectHeldButtons&0x20)!=0);
     public bool PauseHeld => !SuppressInput && RawPauseHeld;
     public bool OnlineHeld => !SuppressInput && RawOnlineHeld;
     public bool ViewChangeHeld => !SuppressInput && ActionHeld(ActionId.Camera);
@@ -125,12 +127,12 @@ public sealed class Idas3ControlBindings
                     catch (Exception) { /* Preserve both files for recovery; defaults remain usable. */ }
             }
         }
-        savedProfiles.Clear();activeProfileKey=LegacyProfile;genericProfile=false;
+        savedProfiles.Clear();rigStates.Clear();Array.Clear(rigAmounts,0,rigAmounts.Length);activeProfileKey=LegacyProfile;genericProfile=false;
         savedProfiles.Add(LegacyProfile,new ControllerProfile{key=LegacyProfile,label="Default controller",actions=CloneActions(current.actions)});
         if(current.controllerProfiles!=null)foreach(var profile in current.controllerProfiles)savedProfiles.Add(profile.key,profile.Clone());
         current.version=3;current.controllerProfiles=null;
         draftProfiles=CloneProfiles(savedProfiles);draft = current.Clone(); IsCapturing = captureArmed = releaseBlocked = releaseKeyboardOnly = false;
-        controls.Clear();restValues.Clear();captureHeldButtons.Clear();awaitingProfileSample=controllerReleaseBlocked=false;reconnectHeldButtons=0;LastNotice=null;
+        controls.Clear();restValues.Clear();captureHeldButtons.Clear();awaitingProfileSample=false;reconnectHeldButtons=0;reconnectHeldAxes=0;reconnectHeldControls.Clear();LastNotice=null;
         Array.Clear(heldKeys, 0, heldKeys.Length); Array.Clear(keyboardActions, 0, keyboardActions.Length); pad = default;
         CapturePrompt = ""; CaptureError = null; Changed?.Invoke();
     }
@@ -190,10 +192,10 @@ public sealed class Idas3ControlBindings
     public void ControllerDeviceChanged()
     {
         EnsureInitialized();CancelCapture();pad=default;controls.Clear();restValues.Clear();captureHeldButtons.Clear();awaitingProfileSample=true;
-        // A newly active wheel can have a held gear selector or pedal. Guard
-        // its input without disabling the independent keyboard indefinitely.
-        // An in-progress capture keeps its own keyboard cancellation guard.
-        controllerReleaseBlocked=true;reconnectHeldButtons=0;
+        // Guard each control that is already held in the first new sample.
+        // One held pedal/stick must not block every other controller action.
+        // An in-progress capture keeps its own cancellation/release guard.
+        reconnectHeldButtons=0;reconnectHeldAxes=0;reconnectHeldControls.Clear();
     }
     private static Binding[] CloneActions(Binding[] value)
     { if(value==null)return null;var result=new Binding[value.Length];for(int i=0;i<value.Length;++i)result[i]=value[i]?.Clone();return result; }
@@ -324,16 +326,23 @@ public sealed class Idas3ControlBindings
     private void BlockUntilRelease() { releaseBlocked = true; releaseKeyboardOnly = false; }
     // Called once by the host, from raw hardware. Menu widgets and native input
     // consume the same sample; capture never polls hardware independently.
-    public void Poll(Func<KeyCode, bool> keyHeld, PadState rawPad, double now,IReadOnlyList<Idas3ControllerControl> rawControls=null)
+    public void Poll(Func<KeyCode, bool> keyHeld, PadState rawPad, double now,IReadOnlyList<Idas3ControllerControl> rawControls=null,IReadOnlyList<Idas3ControllerDevices.RigSample> rig=null)
     {
         EnsureInitialized(); if (keyHeld == null) throw new ArgumentNullException(nameof(keyHeld));
         foreach (var key in PollKeys) heldKeys[(int)key] = keyHeld(key);
         pad = rawPad.connected ? rawPad : default;
+        PollRig(rig);
         controls.Clear();if(rawControls!=null)foreach(var control in rawControls)
             if(control!=null&&!string.IsNullOrEmpty(control.path)&&Finite(control.value)&&Finite(control.minimum)&&Finite(control.maximum)&&control.maximum>control.minimum)controls[control.path]=control;
-        if(awaitingProfileSample){SnapshotRest(true);reconnectHeldButtons=genericProfile?pad.buttons:(ushort)0;awaitingProfileSample=false;}
+        if(awaitingProfileSample){
+            SnapshotRest(true);reconnectHeldButtons=pad.buttons;reconnectHeldAxes=HeldAxes();
+            foreach(var binding in current.actions)
+                if(!string.IsNullOrEmpty(binding.controlPath)&&CustomAmountRaw(binding)>.15f)reconnectHeldControls.Add(binding.controlPath);
+            awaitingProfileSample=false;
+        }
         reconnectHeldButtons&=pad.buttons;
-        if(controllerReleaseBlocked&&!ControllerActionsHeld())controllerReleaseBlocked=false;
+        reconnectHeldAxes&=HeldAxes();
+        reconnectHeldControls.RemoveWhere(path=>!CustomControlHeld(path));
         captureHeldButtons.RemoveWhere(path=>!controls.TryGetValue(path,out var control)||control.value<=.5f);
         for (int i = 0; i < 10; ++i)
         { var binding = current.actions[i]; keyboardActions[i] = Held(binding.key1) || Held(binding.key2) || Held(binding.key3); }
@@ -344,7 +353,8 @@ public sealed class Idas3ControlBindings
             // button can otherwise hold the release prompt open indefinitely).
             if (Held(KeyCode.Escape)) { CancelCapture(); return; }
             if (double.IsNaN(now) || double.IsInfinity(now) || now >= captureDeadline)
-            { CancelCapture(); CaptureError = "No control selected. Try again."; return; }
+            { CancelCapture(); CaptureError = genericProfile&&controls.Count==0?"This device exposes no usable inputs. Check the device driver and mode.":"No control selected. Try again.";
+                Debug.LogWarning("IDAS3 binding capture timed out: "+ActiveControllerProfileLabel+"; usable controls="+controls.Count+"; "+CaptureError);return; }
             if (!captureArmed)
             {
                 // Pedals commonly rest at +1 or -1. Only buttons/keys must be
@@ -381,9 +391,13 @@ public sealed class Idas3ControlBindings
     internal void ApplyMenu(ref Idas3Native.FrameInput frame, bool genericDevice, bool preserveHeldEdges=false)
     {
         frame.padButtons&=~(uint)reconnectHeldButtons;
-        if(controllerReleaseBlocked&&!(preserveHeldEdges&&SuppressInput)){frame.padButtons=0;frame.leftTrigger=frame.rightTrigger=0;frame.thumbLX=frame.thumbLY=frame.thumbRX=frame.thumbRY=0;}
+        if(!(preserveHeldEdges&&SuppressInput)){
+            if((reconnectHeldAxes&1)!=0)frame.leftTrigger=0;if((reconnectHeldAxes&2)!=0)frame.rightTrigger=0;
+            if((reconnectHeldAxes&4)!=0)frame.thumbLX=0;if((reconnectHeldAxes&8)!=0)frame.thumbLY=0;
+            if((reconnectHeldAxes&16)!=0)frame.thumbRX=0;if((reconnectHeldAxes&32)!=0)frame.thumbRY=0;
+        }
         if(SuppressInput&&!preserveHeldEdges)return;
-        bool MenuAction(ActionId action)=>keyboardActions[(int)action]||
+        bool MenuAction(ActionId action)=>keyboardActions[(int)action]||rigAmounts[(int)action]>=.5f||
             (preserveHeldEdges&&SuppressInput?DigitalRaw(current.actions[(int)action]):Digital(current.actions[(int)action]));
         // The host neutralizes blocked packets after retaining menu edges.
         // Populate held actions even during capture so cancelling cannot turn
@@ -420,21 +434,21 @@ public sealed class Idas3ControlBindings
             ClearBoundShortcut(ref frame, binding.key1); ClearBoundShortcut(ref frame, binding.key2); ClearBoundShortcut(ref frame, binding.key3);
         }
         frame.padConnected = pad.connected||controls.Count>0 ? 1u : 0u;
-        frame.padButtons = pad.connected&&!controllerReleaseBlocked ? (uint)pad.buttons & ~0xE01Fu & ~(uint)reconnectHeldButtons : 0u; // Pause is routed by the host.
-        frame.thumbLY = 0; frame.thumbRX = controllerReleaseBlocked?0:pad.thumbRX; frame.thumbRY = controllerReleaseBlocked?0:pad.thumbRY;
+        frame.padButtons = pad.connected ? (uint)pad.buttons & ~0xE01Fu & ~(uint)reconnectHeldButtons : 0u; // Pause is routed by the host.
+        frame.thumbLY = 0; frame.thumbRX = (reconnectHeldAxes&16)!=0?0:pad.thumbRX; frame.thumbRY = (reconnectHeldAxes&32)!=0?0:pad.thumbRY;
         frame.leftTrigger = frame.rightTrigger = 0; frame.thumbLX = 0;
         if (SuppressInput) return;
         int[] output = CanonicalKeys;
         for (int i = 0; i < 7; ++i) if (keyboardActions[i]) frame.SetKey(output[i]);
         if(ActionHeld(ActionId.Headlights))frame.SetKey(72);
-        if (controllerReleaseBlocked||!pad.connected&&controls.Count==0) return;
+        if (!pad.connected&&controls.Count==0) return;
         frame.padConnected = 1;
-        frame.rightTrigger = Pedal(current.actions[0]); frame.leftTrigger = Pedal(current.actions[1]);
-        frame.thumbLX = Math.Max(-32768, Math.Min(32767, Axis(current.actions[3], false) - Axis(current.actions[2], true)));
+        frame.rightTrigger = Math.Max(Pedal(current.actions[0]),(uint)Math.Round(rigAmounts[0]*255)); frame.leftTrigger = Math.Max(Pedal(current.actions[1]),(uint)Math.Round(rigAmounts[1]*255));
+        frame.thumbLX = Math.Max(-32768, Math.Min(32767, Math.Max(Axis(current.actions[3], false),(int)Math.Round(rigAmounts[3]*32767)) - Math.Max(Axis(current.actions[2], true),(int)Math.Round(rigAmounts[2]*32768))));
         frame.thumbLY = SteeringOrthogonal();
-        if (Digital(current.actions[4])) frame.padButtons |= 0x2000;
-        if (Digital(current.actions[5])) frame.padButtons |= 0x4000;
-        if (Digital(current.actions[6])) frame.padButtons |= 0x8000;
+        if (Digital(current.actions[4])||rigAmounts[4]>=.5f) frame.padButtons |= 0x2000;
+        if (Digital(current.actions[5])||rigAmounts[5]>=.5f) frame.padButtons |= 0x4000;
+        if (Digital(current.actions[6])||rigAmounts[6]>=.5f) frame.padButtons |= 0x8000;
     }
     private int SteeringOrthogonal()
     {
@@ -447,7 +461,7 @@ public sealed class Idas3ControlBindings
             if(!customLeft||!customRight||left.controlButton||right.controlButton||
                 left.controlPath!=right.controlPath||left.controlDirection==right.controlDirection)return 0;
             string paired=PairedStickPath(left.controlPath);
-            if(paired==null||!controls.TryGetValue(left.controlPath,out var source)||source.button||
+            if(paired==null||reconnectHeldControls.Contains(left.controlPath)||reconnectHeldControls.Contains(paired)||!controls.TryGetValue(left.controlPath,out var source)||source.button||
                 !controls.TryGetValue(paired,out var other)||other.button||other.minimum>=0||other.maximum<=0)return 0;
             float amount=Math.Max(-1,Math.Min(1,other.value/(other.value<0?-other.minimum:other.maximum)));
             return (int)Math.Round(amount*(amount<0?32768:32767));
@@ -456,8 +470,8 @@ public sealed class Idas3ControlBindings
         if(!pad.connected||axis==null||axis!=StickPath(right.pad)||left.pad==right.pad)return 0;
         switch(axis)
         {
-            case "leftStick/x":return pad.thumbLY;case "leftStick/y":return pad.thumbLX;
-            case "rightStick/x":return pad.thumbRY;case "rightStick/y":return pad.thumbRX;
+            case "leftStick/x":return (reconnectHeldAxes&12)!=0?0:pad.thumbLY;case "leftStick/y":return (reconnectHeldAxes&12)!=0?0:pad.thumbLX;
+            case "rightStick/x":return (reconnectHeldAxes&48)!=0?0:pad.thumbRY;case "rightStick/y":return (reconnectHeldAxes&48)!=0?0:pad.thumbRX;
             default:return 0;
         }
     }
@@ -501,7 +515,7 @@ public sealed class Idas3ControlBindings
             case 6: frame.key6 &= mask; break; case 7: frame.key7 &= mask; break;
         }
     }
-    private bool ActionHeld(ActionId action) => keyboardActions[(int)action] || Digital(current.actions[(int)action]);
+    private bool ActionHeld(ActionId action) => keyboardActions[(int)action] || Digital(current.actions[(int)action]) || rigAmounts[(int)action]>=.5f;
     private bool Held(KeyCode key) => key != KeyCode.None && (int)key >= 0 && (int)key < heldKeys.Length && heldKeys[(int)key];
     private bool AnyInputHeld()
     {
@@ -548,7 +562,8 @@ public sealed class Idas3ControlBindings
             if(amount>score){best=control;score=amount;direction=control.button?1:Math.Sign(delta);rest=control.button?0:baseline;}
         }return best;
     }
-    private float CustomAmount(Binding binding)
+    private float CustomAmount(Binding binding)=>!string.IsNullOrEmpty(binding.controlPath)&&reconnectHeldControls.Contains(binding.controlPath)?0:CustomAmountRaw(binding);
+    private float CustomAmountRaw(Binding binding)
     {
         if(string.IsNullOrEmpty(binding.controlPath)||!controls.TryGetValue(binding.controlPath,out var control))return 0;
         if(binding.controlButton)return control.value>.5f?1:0;
@@ -557,17 +572,28 @@ public sealed class Idas3ControlBindings
     }
     private uint Pedal(Binding binding)=>string.IsNullOrEmpty(binding.controlPath)?Pedal(binding.pad):(uint)Math.Round(CustomAmount(binding)*255);
     private int Axis(Binding binding,bool negative)=>string.IsNullOrEmpty(binding.controlPath)?Axis(binding.pad,negative):(int)Math.Round(CustomAmount(binding)*(negative?32768:32767));
-    private bool ControllerActionsHeld(){
-        if(!genericProfile)return pad.connected&&(pad.buttons!=0||pad.leftTrigger>30||pad.rightTrigger>30||
-            Math.Abs((int)pad.thumbLX)>8000||Math.Abs((int)pad.thumbLY)>8000||Math.Abs((int)pad.thumbRX)>8000||Math.Abs((int)pad.thumbRY)>8000);
-        // Ignore unmapped axes/selectors. Compare configured pedals against
-        // their saved rest, so a nonzero raw resting value is still neutral.
+    private bool CustomControlHeld(string path){
+        // Opposite directions can share an axis. Release only when all bound
+        // directions of that control are at rest, using their saved calibration.
         foreach(var binding in current.actions)
-            if(!string.IsNullOrEmpty(binding.controlPath)?CustomAmount(binding)>.15f:Magnitude(binding.pad)>8000)return true;
+            if(binding.controlPath==path&&CustomAmountRaw(binding)>.15f)return true;
         return false;
     }
-    private bool DigitalRaw(Binding binding)=>string.IsNullOrEmpty(binding.controlPath)?Digital(binding.pad):CustomAmount(binding)>=.5f;
-    private bool Digital(Binding binding)=>!controllerReleaseBlocked&&DigitalRaw(binding);
+    private int HeldAxes()=>!pad.connected?0:(pad.leftTrigger>30?1:0)|(pad.rightTrigger>30?2:0)|
+        (Math.Abs((int)pad.thumbLX)>8000?4:0)|(Math.Abs((int)pad.thumbLY)>8000?8:0)|
+        (Math.Abs((int)pad.thumbRX)>8000?16:0)|(Math.Abs((int)pad.thumbRY)>8000?32:0);
+    private static int AxisMask(PadInput input){
+        switch(input){
+            case PadInput.LeftTrigger:return 1;case PadInput.RightTrigger:return 2;
+            case PadInput.LeftStickLeft:case PadInput.LeftStickRight:return 4;
+            case PadInput.LeftStickUp:case PadInput.LeftStickDown:return 8;
+            case PadInput.RightStickLeft:case PadInput.RightStickRight:return 16;
+            case PadInput.RightStickUp:case PadInput.RightStickDown:return 32;
+            default:return 0;
+        }
+    }
+    private bool DigitalRaw(Binding binding)=>string.IsNullOrEmpty(binding.controlPath)?Digital(binding.pad):CustomAmountRaw(binding)>=.5f;
+    private bool Digital(Binding binding)=>string.IsNullOrEmpty(binding.controlPath)?Digital(binding.pad):CustomAmount(binding)>=.5f;
     private static bool Finite(float value)=>!float.IsNaN(value)&&!float.IsInfinity(value);
     private static ushort ButtonMask(PadInput input)
     {
@@ -582,7 +608,7 @@ public sealed class Idas3ControlBindings
     }
     private int Magnitude(PadInput input)
     {
-        if (!pad.connected) return 0;
+        if (!pad.connected||(reconnectHeldAxes&AxisMask(input))!=0) return 0;
         ushort mask = ButtonMask(input); if (mask != 0) return (pad.buttons & ~reconnectHeldButtons & mask) != 0 ? 32768 : 0;
         switch (input)
         {
@@ -601,7 +627,7 @@ public sealed class Idas3ControlBindings
     }
     private uint Pedal(PadInput input)
     {
-        if (!pad.connected) return 0;
+        if (!pad.connected||(reconnectHeldAxes&AxisMask(input))!=0) return 0;
         if (input == PadInput.LeftTrigger) return pad.leftTrigger;
         if (input == PadInput.RightTrigger) return pad.rightTrigger;
         int magnitude = Magnitude(input);

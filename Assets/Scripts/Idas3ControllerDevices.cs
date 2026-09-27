@@ -10,14 +10,19 @@ using UnityEngine.InputSystem.HID;
 using UnityEngine.InputSystem.XInput;
 
 // Device discovery/selection is separate from action bindings and native input
-// response. A selected missing device stays selected; it cannot fall through
-// to a different controller. Only Automatic may change the input source.
+// response. Explicit preferences survive temporary fallback. A menu locks a
+// live source, but must allow recovery when that source disappears.
 public sealed class Idas3ControllerDevices : IDisposable
 {
     public sealed class DeviceChoice
     {
         public string key, label;
         public bool connected;
+    }
+    public sealed class RigSample
+    {
+        public string key, profile;
+        public IReadOnlyList<Idas3ControllerControl> controls;
     }
     [Serializable] private sealed class Preference
     {
@@ -38,6 +43,7 @@ public sealed class Idas3ControllerDevices : IDisposable
         public readonly List<AxisControl> axes = new List<AxisControl>();
         public float[] activityBaseline;
         public Idas3ControlBindings.PadState pad;
+        public readonly RigSample rig = new RigSample();
     }
     private readonly Func<double> now;
     private readonly Idas3GamepadInput.ReadXInput readXInput;
@@ -46,6 +52,8 @@ public sealed class Idas3ControllerDevices : IDisposable
     private readonly Dictionary<int, Device> unityDevices = new Dictionary<int, Device>();
     private readonly Device[] xbox = new Device[4];
     private readonly List<DeviceChoice> choices = new List<DeviceChoice>();
+    private readonly List<RigSample> rigSamples = new List<RigSample>();
+    public IReadOnlyList<RigSample> RigSamples => rigSamples;
     private static readonly Idas3ControllerControl[] NoControls = Array.Empty<Idas3ControllerControl>();
     private readonly DeviceChoice automaticChoice = new DeviceChoice { key = "automatic", label = "Automatic", connected = true };
     private readonly DeviceChoice keyboardChoice = new DeviceChoice { key = "keyboard", label = "Keyboard only", connected = true };
@@ -108,7 +116,7 @@ public sealed class Idas3ControllerDevices : IDisposable
     public void Dispose()
     {
         if (initialized) InputSystem.onDeviceChange -= OnDeviceChange;
-        initialized = false; active = automaticResume = null;
+        initialized = false; active = automaticResume = null;rigSamples.Clear();
     }
     private void OnDeviceChange(InputDevice device, InputDeviceChange change) { dirty = true; }
     public bool Select(string key)
@@ -164,7 +172,7 @@ public sealed class Idas3ControllerDevices : IDisposable
         {
             if (!device.choice.connected) continue;
             ReadDevice(device);
-            if (ObserveActivity(device)) activity = device;
+            if (ObserveActivity(device) && !(device.generic && active != null && active.generic && active.choice.connected)) activity = device;
         }
         if (preference.key == "keyboard") SetActive(null);
         else if (Specific)
@@ -193,9 +201,14 @@ public sealed class Idas3ControllerDevices : IDisposable
             if (resumed != null && resumed.choice.connected && resumed.profile == automaticResume.profile)
                 SetActive(resumed);
         }
-        if (preference.key == "automatic" && allowAutoSwitch)
-            SetActive(activity ?? active ?? FirstConnected());
+        if (preference.key == "automatic")
+            SetActive(allowAutoSwitch ? activity ?? active ?? FirstConnected() : active ?? FirstConnected());
         if (dirty) { RebuildChoices(); dirty = false; }
+        rigSamples.Clear();
+        if(active!=null&&active.generic&&active.choice.connected&&preference.key!="keyboard")
+            foreach(var device in devices)if(device.generic&&device.choice.connected&&device!=active){
+                device.rig.key=device.choice.key;device.rig.profile=device.profile;device.rig.controls=device.controls;rigSamples.Add(device.rig);
+            }
     }
     public bool TryRead(out Idas3ControlBindings.PadState state)
     {
@@ -305,7 +318,9 @@ public sealed class Idas3ControllerDevices : IDisposable
             device.controls.Add(new Idas3ControllerControl { path = path, label = name, minimum = minimum, maximum = maximum, button = button });
             device.axes.Add(axis);
         }
-        device.activityBaseline = new float[device.controls.Count]; return device;
+        device.activityBaseline = new float[device.controls.Count];
+        if(device.generic)Debug.Log("IDAS3 HID input: "+device.choice.label+"; usable controls="+device.controls.Count+"; descriptor filtered="+device.descriptorControls+"; VID="+device.vendorId.ToString("X4")+" PID="+device.productId.ToString("X4"));
+        return device;
     }
     private static HID.HIDElementDescriptor[] AutoHidInputElements(InputDevice input)
     {
