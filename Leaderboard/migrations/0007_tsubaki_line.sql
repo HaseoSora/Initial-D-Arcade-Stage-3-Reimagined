@@ -1,34 +1,46 @@
--- Widen course directions to 0..31. Copy dependent replay tables before
--- replacing runs so ON DELETE CASCADE cannot remove existing recordings.
-CREATE TABLE runs_tsubaki (
- id TEXT PRIMARY KEY, device_id TEXT NOT NULL REFERENCES devices(id),
- ruleset TEXT NOT NULL, epoch INTEGER NOT NULL, condition INTEGER NOT NULL CHECK(condition BETWEEN 0 AND 31),
- weather INTEGER NOT NULL CHECK(weather IN (0,1)), car INTEGER NOT NULL CHECK(car BETWEEN 0 AND 34),
- ticks INTEGER NOT NULL CHECK(ticks BETWEEN 60000 AND 10799999),
- glyphs TEXT NOT NULL, splits TEXT NOT NULL, manual INTEGER NOT NULL, night INTEGER NOT NULL,
- points INTEGER NOT NULL, build TEXT NOT NULL, created_at INTEGER NOT NULL,
- hidden INTEGER NOT NULL DEFAULT 0 CHECK(hidden IN (0,1)), reason TEXT NOT NULL DEFAULT '',
- imported INTEGER NOT NULL DEFAULT 0 CHECK(imported IN (0,1)),
- replay_size INTEGER NOT NULL DEFAULT 0, replay_sha256 TEXT NOT NULL DEFAULT ''
-);
-INSERT INTO runs_tsubaki SELECT * FROM runs;
-CREATE TABLE replays_tsubaki (
- run_id TEXT PRIMARY KEY REFERENCES runs_tsubaki(id),
- data BLOB NOT NULL CHECK(length(data) BETWEEN 44 AND 1010000)
-);
-INSERT INTO replays_tsubaki SELECT * FROM replays;
-CREATE TABLE replay_chunks_tsubaki (
- run_id TEXT NOT NULL REFERENCES runs_tsubaki(id) ON DELETE CASCADE,
- part INTEGER NOT NULL CHECK(part >= 0), data BLOB NOT NULL,
- PRIMARY KEY(run_id, part)
-);
-INSERT INTO replay_chunks_tsubaki SELECT * FROM replay_chunks;
-DROP TABLE replay_chunks;
-DROP TABLE replays;
-DROP TABLE runs;
-ALTER TABLE runs_tsubaki RENAME TO runs;
-ALTER TABLE replays_tsubaki RENAME TO replays;
-ALTER TABLE replay_chunks_tsubaki RENAME TO replay_chunks;
-CREATE INDEX runs_board ON runs(ruleset,epoch,condition,weather,hidden,ticks,created_at);
-CREATE INDEX runs_device ON runs(device_id,created_at);
-CREATE UNIQUE INDEX runs_import_once ON runs(device_id,condition,weather,car,ticks) WHERE imported=1;
+-- Preserve existing replay foreign keys and BLOB pages. Rebuilding their
+-- tables doubles a multi-GB database during migration and can time out on D1.
+-- The writable view keeps the public SQL contract while widening conditions.
+ALTER TABLE runs ADD COLUMN condition_extended INTEGER
+ CHECK(condition_extended IS NULL OR condition_extended BETWEEN 30 AND 31);
+ALTER TABLE runs RENAME TO runs_storage;
+
+CREATE VIEW runs AS SELECT
+ id,device_id,ruleset,epoch,COALESCE(condition_extended,condition) AS condition,
+ weather,car,ticks,glyphs,splits,manual,night,points,build,created_at,
+ hidden,reason,imported,replay_size,replay_sha256
+FROM runs_storage;
+
+CREATE TRIGGER runs_insert INSTEAD OF INSERT ON runs BEGIN
+ INSERT INTO runs_storage(id,device_id,ruleset,epoch,condition,condition_extended,
+  weather,car,ticks,glyphs,splits,manual,night,points,build,created_at,
+  hidden,reason,imported,replay_size,replay_sha256)
+ VALUES(NEW.id,NEW.device_id,NEW.ruleset,NEW.epoch,
+  CASE WHEN NEW.condition>=30 THEN 0 ELSE NEW.condition END,
+  CASE WHEN NEW.condition>=30 THEN NEW.condition ELSE NULL END,
+  NEW.weather,NEW.car,NEW.ticks,NEW.glyphs,NEW.splits,NEW.manual,NEW.night,
+  NEW.points,NEW.build,NEW.created_at,COALESCE(NEW.hidden,0),COALESCE(NEW.reason,''),
+  COALESCE(NEW.imported,0),COALESCE(NEW.replay_size,0),COALESCE(NEW.replay_sha256,''));
+END;
+
+CREATE TRIGGER runs_update INSTEAD OF UPDATE ON runs BEGIN
+ UPDATE runs_storage SET id=NEW.id,device_id=NEW.device_id,ruleset=NEW.ruleset,
+  epoch=NEW.epoch,condition=CASE WHEN NEW.condition>=30 THEN 0 ELSE NEW.condition END,
+  condition_extended=CASE WHEN NEW.condition>=30 THEN NEW.condition ELSE NULL END,
+  weather=NEW.weather,car=NEW.car,ticks=NEW.ticks,glyphs=NEW.glyphs,splits=NEW.splits,
+  manual=NEW.manual,night=NEW.night,points=NEW.points,build=NEW.build,
+  created_at=NEW.created_at,hidden=NEW.hidden,reason=NEW.reason,imported=NEW.imported,
+  replay_size=NEW.replay_size,replay_sha256=NEW.replay_sha256
+ WHERE id=OLD.id;
+END;
+
+CREATE TRIGGER runs_delete INSTEAD OF DELETE ON runs BEGIN
+ DELETE FROM runs_storage WHERE id=OLD.id;
+END;
+
+DROP INDEX runs_board;
+CREATE INDEX runs_board ON runs_storage(ruleset,epoch,
+ COALESCE(condition_extended,condition),weather,hidden,ticks,created_at);
+DROP INDEX runs_import_once;
+CREATE UNIQUE INDEX runs_import_once ON runs_storage(device_id,
+ COALESCE(condition_extended,condition),weather,car,ticks) WHERE imported=1;

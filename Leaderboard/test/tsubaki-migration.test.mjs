@@ -10,6 +10,10 @@ test('Tsubaki migration preserves previous times, moderation, and both replay st
  db.exec('BEGIN');db.exec(readFileSync(new URL('../migrations/0007_tsubaki_line.sql',import.meta.url),'utf8'));db.exec('COMMIT');
  for(const table of Object.keys(before))assert.deepEqual(db.prepare('SELECT * FROM '+table).all(),before[table]);
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+ assert.equal(db.prepare("SELECT type FROM sqlite_schema WHERE name='runs'").get().type,'view');
+ for(const table of ['replays','replay_chunks'])assert.equal(db.prepare('PRAGMA foreign_key_list('+table+')').get().table,'runs_storage');
  db.exec('UPDATE runs SET condition=30');db.exec('UPDATE runs SET condition=31');assert.throws(()=>db.exec('UPDATE runs SET condition=32'));
+ db.exec("UPDATE runs SET hidden=0,reason='restored'");assert.equal(db.prepare('SELECT condition FROM runs').get().condition,31);
+ db.exec('UPDATE runs SET condition=29');assert.equal(db.prepare('SELECT condition_extended FROM runs_storage').get().condition_extended,null);
  db.exec('DELETE FROM replays;DELETE FROM runs');assert.equal(db.prepare('SELECT count(*) n FROM replay_chunks').get().n,0);db.close();
 });

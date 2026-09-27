@@ -36,6 +36,7 @@ The checked-in configuration has a placeholder database ID. Production credentia
 - IP addresses are used for rate limiting, not stored with submissions. Worker observability is disabled in the supplied configuration.
 - Client-reported telemetry and build versions are not authoritative anti-cheat verification.
 - Course IDs 12–14 identify Myogi (Special Stage), Usui (Special Stage) and Momiji Line. Their directions use conditions 24–29; original Myogi and Usui records keep their existing IDs. Migration 0006 expands the condition constraint while preserving runs, replays and replay chunks. Apply it once when upgrading from 0005; do not rerun the season reset.
+- Course ID 15 is Tsubaki Line (conditions 30–31). Apply migration 0007 once. It renames the backing table to `runs_storage` and exposes the same `runs` columns through a writable view; existing replay foreign keys follow the backing table. This widens conditions without copying gigabytes of replay data. Future migrations must account for the view and its insert/update/delete triggers. Normal queries, moderation, constraints and cascade behavior are covered by the worker and migration tests.
 
 The service has no Steam-account linking requirement. Personal replay archives are separate from the Time Attack upload queue and are not uploaded automatically.
 
