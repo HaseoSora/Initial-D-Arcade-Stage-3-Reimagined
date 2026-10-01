@@ -1,5 +1,9 @@
 name: Android Native Smoke
 
+concurrency:
+  group: android-native-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [android-port]
