@@ -3,7 +3,6 @@
 #include <array>
 #include <cmath>
 #include <fstream>
-#include <numbers>
 #include <stdexcept>
 
 namespace idas3 {
@@ -49,9 +48,13 @@ OriginalAudioClip decodeOriginalAdx(std::span<const std::uint8_t> data){
                 throw std::runtime_error("Invalid ADX loop bounds");
         }
     }
-    const float cosine=std::cos(float(2.0*std::numbers::pi*double(cutoff)/double(out.sampleRate)));
-    const float a=float(std::numbers::sqrt2-double(cosine));
-    const float b=float(std::numbers::sqrt2-1.0);
+    // Keep these explicit constants portable to Android NDK r25, whose libc++
+    // predates <numbers>. Values match the C++20 double constants.
+    constexpr double piConstant=3.141592653589793238462643383279502884;
+    constexpr double sqrt2Constant=1.414213562373095048801688724209698079;
+    const float cosine=std::cos(float(2.0*piConstant*double(cutoff)/double(out.sampleRate)));
+    const float a=float(sqrt2Constant-double(cosine));
+    const float b=float(sqrt2Constant-1.0);
     const float predictor=(a-std::sqrt((a+b)*(a-b)))/b;
     const int coefficient1=int(predictor*8192.f),coefficient2=int(predictor*predictor*-4096.f);
     out.samples.resize(frames*out.channels);
