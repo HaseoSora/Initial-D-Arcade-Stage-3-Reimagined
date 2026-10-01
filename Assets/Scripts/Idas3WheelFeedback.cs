@@ -31,6 +31,15 @@ public sealed class Idas3WheelFeedback : IDisposable
     internal interface IBackend {
         List<DeviceChoice> Discover(); bool Send(string id,CabinetRequest request); void Stop(); void Shutdown(); string Status {get;}
     }
+    private sealed class NullBackend : IBackend
+    {
+        public List<DeviceChoice> Discover()=>new List<DeviceChoice>();
+        public bool Send(string id,CabinetRequest request)=>false;
+        public void Stop(){}
+        public void Shutdown(){}
+        public string Status=>"Force feedback is unavailable on this platform.";
+    }
+
     private sealed class NativeBackend : IBackend
     {
         private const string Library="Idas3WheelFeedback";
@@ -118,7 +127,15 @@ public sealed class Idas3WheelFeedback : IDisposable
     private double tickChangedAt,nextScan,retryAt,lastSendAt;
     public IReadOnlyList<DeviceChoice> Choices=>choices;
     public string StatusText {get;private set;}="Force feedback is off.";
-    public Idas3WheelFeedback(bool disableOutput=false):this(disableOutput?(IBackend)new NativeBackend():new QueuedBackend(new NativeBackend()),disableOutput){}
+    public Idas3WheelFeedback(bool disableOutput=false):this(CreateBackend(disableOutput),disableOutput){}
+    private static IBackend CreateBackend(bool disableOutput)
+    {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+        return disableOutput ? (IBackend)new NativeBackend() : new QueuedBackend(new NativeBackend());
+#else
+        return new NullBackend();
+#endif
+    }
     internal Idas3WheelFeedback(IBackend backend,bool disableOutput=false){
         this.backend=backend??throw new ArgumentNullException(nameof(backend));this.disableOutput=disableOutput;
         choices.Add(new DeviceChoice{id="",name="AUTOMATIC (ACTIVE WHEEL)"});
@@ -129,7 +146,7 @@ public sealed class Idas3WheelFeedback : IDisposable
         if(disposed)return;
         try{
             var found=backend.Discover();choices.RemoveRange(1,choices.Count-1);choices.AddRange(found);
-            StatusText=found.Count==0?"No compatible force-feedback wheel found. Check its Windows driver.":found.Count+" force-feedback device(s) available.";
+            StatusText=found.Count==0?(backend is NullBackend?"Force feedback is unavailable on this platform.":"No compatible force-feedback wheel found. Check its Windows driver."):found.Count+" force-feedback device(s) available.";
         }catch(Exception error){choices.RemoveRange(1,choices.Count-1);Stop();StatusText="Wheel feedback unavailable: "+error.Message;}
     }
     private string Resolve(string preference,InputIdentity input){
