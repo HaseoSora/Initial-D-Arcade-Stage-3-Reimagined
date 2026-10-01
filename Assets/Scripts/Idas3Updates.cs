@@ -56,6 +56,12 @@ public sealed class Idas3Updates : MonoBehaviour
     private static void Bootstrap(){
         Instance=null;StartupFinished=true;
         if(Application.isEditor)return;
+#if UNITY_ANDROID
+        // The desktop updater installs Windows ZIPs and launches a native
+        // installer process. Android packages are updated through APK installs,
+        // so never put that Windows update gate in front of mobile startup.
+        return;
+#endif
         bool diagnostic=false;
         foreach(string arg in Environment.GetCommandLineArgs())
             if((arg.StartsWith("-idas3-",StringComparison.Ordinal)&&arg!="-idas3-skip-update-once")||arg.StartsWith("-hakone-",StringComparison.Ordinal))diagnostic=true;
@@ -84,7 +90,14 @@ public sealed class Idas3Updates : MonoBehaviour
 
     public void Initialize(bool checkOnStartup=true){
         InstalledVersion=Application.version;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        StartupFinished=true;
+        State=CheckState.Unavailable;
+        Message="Android updates are installed as APK releases.";
+        return;
+#else
         if(checkOnStartup){StartupFinished=false;startupWindow=true;ShowWindow();CheckNow();}
+#endif
     }
     public void Activate(){
         if(State==CheckState.Available||State==CheckState.Current&&fullUrl!=null)ShowWindow();
