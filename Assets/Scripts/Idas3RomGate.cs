@@ -14,6 +14,7 @@ public sealed class Idas3RomGate : MonoBehaviour
     internal string Message => message;
     internal string RomFolder => Path.Combine(gameRoot, "rom");
     private string gameRoot, message = "Checking GDS-0033…";
+    private bool androidImporting;
     private Task<Idas3RomValidation.Result> validation;
     private CancellationTokenSource cancellation;
     private volatile float progress;
@@ -42,7 +43,13 @@ public sealed class Idas3RomGate : MonoBehaviour
         var go = new GameObject("GDS-0033 startup check");
         DontDestroyOnLoad(go);
         Instance = go.AddComponent<Idas3RomGate>();
+#if UNITY_ANDROID && !UNITY_EDITOR
+        // Android has no writable "folder beside the executable". Keep the
+        // user's validated disc in app-private persistent storage.
+        Instance.gameRoot = Path.GetFullPath(Application.persistentDataPath);
+#else
         Instance.gameRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+#endif
         Instance.background = go.AddComponent<Camera>();
         Instance.background.clearFlags = CameraClearFlags.SolidColor;
         Instance.background.backgroundColor = Color.black;
@@ -56,7 +63,7 @@ public sealed class Idas3RomGate : MonoBehaviour
 
     internal void CheckAgain()
     {
-        if (Verified || Checking) return;
+        if (Verified || Checking || androidImporting) return;
         try
         {
             Directory.CreateDirectory(RomFolder);
@@ -101,7 +108,7 @@ public sealed class Idas3RomGate : MonoBehaviour
         }
         var key = Keyboard.current; var pad = Gamepad.current;
         if (key?.escapeKey.wasPressedThisFrame == true || pad?.buttonEast.wasPressedThisFrame == true) { Quit(); return; }
-        if (Checking) return;
+        if (Checking || androidImporting) return;
         if (key?.leftArrowKey.wasPressedThisFrame == true || pad?.dpad.left.wasPressedThisFrame == true) selected = (selected + 2) % 3;
         if (key?.rightArrowKey.wasPressedThisFrame == true || pad?.dpad.right.wasPressedThisFrame == true) selected = (selected + 1) % 3;
         if (key?.enterKey.wasPressedThisFrame == true || key?.numpadEnterKey.wasPressedThisFrame == true || pad?.buttonSouth.wasPressedThisFrame == true) Activate(selected);
@@ -110,9 +117,42 @@ public sealed class Idas3RomGate : MonoBehaviour
     private void Activate(int action)
     {
         if (action == 0) CheckAgain();
-        else if (action == 1) Application.OpenURL(new Uri(RomFolder + Path.DirectorySeparatorChar).AbsoluteUri);
+        else if (action == 1)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                Directory.CreateDirectory(RomFolder);
+                androidImporting = true;
+                message = "Choose your original gds-0033.chd…";
+                using (var picker = new AndroidJavaClass("com.haseosora.idas3.Idas3RomPicker"))
+                    picker.CallStatic("open", gameObject.name, Path.Combine(RomFolder, "gds-0033.chd"));
+            }
+            catch (Exception error)
+            {
+                androidImporting = false;
+                message = "Could not open Android's file picker. " + error.Message;
+            }
+#else
+            Application.OpenURL(new Uri(RomFolder + Path.DirectorySeparatorChar).AbsoluteUri);
+#endif
+        }
         else Quit();
     }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+    // Called by the tiny Android document-picker bridge after it has copied the
+    // selected file into our private ROM folder. Validation remains entirely in
+    // the existing managed SHA-256 gate.
+    public void OnAndroidRomImportResult(string result)
+    {
+        androidImporting = false;
+        if (result == "OK") { message = "Checking imported GDS-0033…"; CheckAgain(); return; }
+        if (result == "CANCEL") { message = "ROM import cancelled."; return; }
+        message = result != null && result.StartsWith("ERROR:", StringComparison.Ordinal)
+            ? result.Substring(6) : "Could not import gds-0033.chd.";
+    }
+#endif
 
     private static void Quit()
     {
@@ -157,18 +197,22 @@ public sealed class Idas3RomGate : MonoBehaviour
         Fill(new Rect(0, 0, 1280, 720), Color.black);
         Fill(new Rect(160, 170, 960, 380), new Color(.04f, .045f, .05f));
         Fill(new Rect(160, 170, 960, 5), new Color(.89f, .08f, .16f));
-        GUI.Label(new Rect(195, 194, 880, 54), Checking ? "CHECKING GDS-0033" : "ROM REQUIRED", titleStyle);
+        GUI.Label(new Rect(195, 194, 880, 54), Checking ? "CHECKING GDS-0033" : androidImporting ? "IMPORTING GDS-0033" : "ROM REQUIRED", titleStyle);
         GUI.Label(new Rect(198, 273, 875, 72), message, textStyle);
         GUI.Label(new Rect(198, 351, 875, 62), RomFolder, pathStyle);
-        if (Checking)
+        if (Checking || androidImporting)
         {
             Fill(new Rect(198, 439, 875, 8), new Color(.18f, .19f, .21f));
-            Fill(new Rect(198, 439, 875 * Mathf.Clamp01(progress), 8), new Color(.89f, .08f, .16f));
+            Fill(new Rect(198, 439, 875 * Mathf.Clamp01(androidImporting ? 0 : progress), 8), new Color(.89f, .08f, .16f));
             GUI.Label(new Rect(198, 470, 875, 30), "ESC / B  QUIT", pathStyle);
         }
         else
         {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            string[] labels = { "CHECK AGAIN", "IMPORT CHD", "QUIT" };
+#else
             string[] labels = { "CHECK AGAIN", "OPEN ROM FOLDER", "QUIT" };
+#endif
             for (int i = 0; i < labels.Length; ++i)
             {
                 var rect = new Rect(198 + i * 295, 445, 280, 56);
