@@ -111,7 +111,22 @@ public sealed class Idas3SceneGame : MonoBehaviour
         new GameObject("Initial D — Unity scene").AddComponent<Idas3SceneGame>();
     }
 
-    private void Awake(){if(Idas3RomGate.Verified&&Idas3Updates.StartupFinished)InitializeGame();}
+    private void Awake()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        StartCoroutine(Idas3AndroidStorage.Prepare());
+#endif
+        if(Idas3RomGate.Verified&&Idas3Updates.StartupFinished&&AndroidRuntimeReady())InitializeGame();
+    }
+
+    private static bool AndroidRuntimeReady()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        return Idas3AndroidStorage.Ready;
+#else
+        return true;
+#endif
+    }
     private void InitializeGame()
     {
         if (!Idas3RomGate.Verified || !Idas3Updates.StartupFinished) return;
@@ -131,9 +146,14 @@ public sealed class Idas3SceneGame : MonoBehaviour
         outputCamera = GetComponent<Camera>();
         try
         {
-            string assets = Application.isEditor
+            string assets;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            assets = Idas3AndroidStorage.AssetRoot;
+#else
+            assets = Application.isEditor
                 ? Path.GetFullPath(Path.Combine(Application.dataPath, "../Native"))
                 : Path.Combine(Application.streamingAssetsPath, "IDAS3");
+#endif
             string saves = Path.Combine(Application.persistentDataPath, "userdata-unity-scene");
             var hakone=FindAnyObjectByType<Idas8HakoneCourse>();
             var enna=FindAnyObjectByType<IdasSpecialStageEnnaCourse>();
@@ -221,7 +241,11 @@ public sealed class Idas3SceneGame : MonoBehaviour
             controllerDevices.ActiveDeviceChanged += ControllerDeviceChanged;
             ControllerDeviceChanged();
             pauseMenu.InitializeControllerDevices(controllerDevices);
+#if UNITY_ANDROID && !UNITY_EDITOR
+            wheelFeedback=new Idas3WheelFeedback(true);
+#else
             wheelFeedback=new Idas3WheelFeedback(diagnosticMode);
+#endif
             pauseMenu.InitializeWheelFeedback(wheelFeedback);
             pauseMenu.OpenChanged += PauseVisibilityChanged;
             raceMusic = new Idas3RaceMusicCatalog();
@@ -327,7 +351,14 @@ public sealed class Idas3SceneGame : MonoBehaviour
 
     private void Update()
     {
-        if(!ready&&!stopping&&failure==null){if(Idas3RomGate.Verified&&Idas3Updates.StartupFinished)InitializeGame();return;}
+        if(!ready&&!stopping&&failure==null)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if(Idas3AndroidStorage.Error!=null){Fail(Idas3AndroidStorage.Error);return;}
+#endif
+            if(Idas3RomGate.Verified&&Idas3Updates.StartupFinished&&AndroidRuntimeReady())InitializeGame();
+            return;
+        }
         if (!ready || stopping || failure != null) return;
         if(pauseMenu!=null&&pauseMenu.Updates!=null&&pauseMenu.Updates.WindowVisible)return;
         try
