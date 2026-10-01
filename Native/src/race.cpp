@@ -7,6 +7,7 @@
 #include <limits>
 #include <bit>
 #include <charconv>
+#include <cstring>
 
 namespace idas3 {
 void RaceClock::start(float totalLength) {
@@ -79,7 +80,19 @@ bool Replay::save(const std::string& filename) const {
     // once for last_run and once for a new personal-best ghost.
     std::array<char,65536> buffer;char* cursor=buffer.data();
     const auto integer=[&](auto value){cursor=std::to_chars(cursor,buffer.data()+buffer.size(),value).ptr;};
+#if defined(__ANDROID__)
+    // NDK r25's libc++ has integer to_chars but not its floating overloads.
+    // Android starts in the C numeric locale; %.9g matches the existing
+    // round-trip precision and keeps the on-disk replay CSV unchanged.
+    const auto scalar=[&](float value){
+        char text[48]{};
+        const int count=std::snprintf(text,sizeof(text),"%.9g",double(value));
+        if(count<=0||count>=int(sizeof(text)))throw std::runtime_error("Could not format replay float");
+        std::memcpy(cursor,text,std::size_t(count));cursor+=count;
+    };
+#else
     const auto scalar=[&](float value){cursor=std::to_chars(cursor,buffer.data()+buffer.size(),value,std::chars_format::general,9).ptr;};
+#endif
     for(const auto& f:frames) {
         if(buffer.data()+buffer.size()-cursor<512){out.write(buffer.data(),cursor-buffer.data());cursor=buffer.data();}
         integer(f.tick);*cursor++=',';scalar(f.speed);*cursor++=',';scalar(f.yaw);*cursor++=',';
