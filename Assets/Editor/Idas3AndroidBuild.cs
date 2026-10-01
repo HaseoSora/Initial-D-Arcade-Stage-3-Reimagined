@@ -24,6 +24,10 @@ public static class Idas3AndroidBuild
         PlayerSettings.fullScreen = true;
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
+        // Direct LAN/Steam transports and packaged/network media use sockets.
+        // Force this into the generated Android manifest instead of relying on
+        // Unity's feature scan to infer it from managed code.
+        PlayerSettings.Android.forceInternetPermission = true;
         PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
         PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.Vulkan });
