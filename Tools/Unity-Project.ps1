@@ -1,4 +1,4 @@
-param([ValidateSet('Open','Build')][string]$Action = 'Open', [string]$UnityPath)
+param([ValidateSet('Open','Build','AndroidBuild')][string]$Action = 'Open', [string]$UnityPath)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $UnityPath) { $UnityPath = $env:IDAS3_UNITY_EDITOR }
@@ -27,6 +27,12 @@ if ($Action -eq 'Build') {
     $editorArgs += @('-batchmode', '-quit', '-buildTarget', 'Win64', '-executeMethod', 'Idas3Build.BuildWindows')
     $process = Start-Process -FilePath $UnityPath -ArgumentList $editorArgs -WindowStyle Hidden -PassThru
     # Wait for the editor, not its long-lived licensing/package services.
+    $process.WaitForExit()
+    exit $process.ExitCode
+}
+if ($Action -eq 'AndroidBuild') {
+    $editorArgs += @('-batchmode', '-quit', '-buildTarget', 'Android', '-executeMethod', 'Idas3AndroidBuild.BuildApk')
+    $process = Start-Process -FilePath $UnityPath -ArgumentList $editorArgs -WindowStyle Hidden -PassThru
     $process.WaitForExit()
     exit $process.ExitCode
 }
