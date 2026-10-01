@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.24)
 project(InitialDRemake VERSION 0.3.29 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(ANDROID)
+  # NDK r25's libc++ is missing a few C++20 library entry points used by the
+  # verified desktop source even though Clang itself supports the language.
+  add_compile_options(-include "${CMAKE_SOURCE_DIR}/src/android_cpp20_compat.h")
+endif()
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 enable_testing()
 set(IDAS3_ORIGINAL_IMAGE "" CACHE FILEPATH "Optional canonical original image for development-only opcode parity tests")
