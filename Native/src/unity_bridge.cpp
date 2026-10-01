@@ -928,9 +928,34 @@ int IDAS3_UNITY_CALL Idas3SceneSetPreRaceNames(const char* localUtf8,const char*
             throw std::logic_error("Set online names after loading and before releasing the start");
         const auto parse=[](const char* text){
             if(!text)throw std::invalid_argument("A driver name is required");
+#if defined(IDAS3_PORTABLE_SCENE)
+            const auto length=strnlen(text,129);
+            const auto validUtf8=[](const unsigned char* p,std::size_t n){
+                std::size_t i=0;
+                while(i<n){
+                    const unsigned c=p[i++];
+                    if(c<0x80)continue;
+                    unsigned need=0;std::uint32_t value=0,minValue=0;
+                    if((c&0xe0)==0xc0){need=1;value=c&0x1f;minValue=0x80;}
+                    else if((c&0xf0)==0xe0){need=2;value=c&0x0f;minValue=0x800;}
+                    else if((c&0xf8)==0xf0){need=3;value=c&0x07;minValue=0x10000;}
+                    else return false;
+                    if(i+need>n)return false;
+                    for(unsigned k=0;k<need;++k){
+                        const unsigned next=p[i++];
+                        if((next&0xc0)!=0x80)return false;
+                        value=(value<<6)|(next&0x3f);
+                    }
+                    if(value<minValue||value>0x10ffff||(value>=0xd800&&value<=0xdfff))return false;
+                }
+                return true;
+            };
+            const bool valid=length&&length<=128&&validUtf8(reinterpret_cast<const unsigned char*>(text),length);
+#else
             const auto length=strnlen_s(text,129);
-            if(!length||length>128||MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,text,int(length),nullptr,0)<=0)
-                throw std::invalid_argument("Driver names must be valid UTF8 up to128bytes");
+            const bool valid=length&&length<=128&&MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,text,int(length),nullptr,0)>0;
+#endif
+            if(!valid)throw std::invalid_argument("Driver names must be valid UTF8 up to128bytes");
             for(std::size_t i=0;i<length;++i)if(static_cast<unsigned char>(text[i])<32)
                 throw std::invalid_argument("Driver names cannot contain control characters");
             return std::string(text,length);
