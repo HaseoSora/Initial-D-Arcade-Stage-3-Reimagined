@@ -35,3 +35,10 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
       - name: Build Idas3Unity
         run: cmake --build build-android --target Idas3Unity --parallel 2
+      - name: Upload ARM64 native plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: Idas3Unity-Android-arm64
+          path: Assets/Plugins/Android/arm64-v8a/libIdas3Unity.so
+          if-no-files-found: error
+          retention-days: 14
