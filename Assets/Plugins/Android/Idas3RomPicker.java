@@ -9,7 +9,6 @@ import android.os.Bundle;
 import com.unity3d.player.UnityPlayer;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 
@@ -67,10 +66,14 @@ public final class Idas3RomPicker extends Fragment {
             Activity activity = getActivity();
             if (activity == null) throw new IllegalStateException("Android activity is unavailable.");
             File target = new File(destination).getCanonicalFile();
+            File internal = activity.getFilesDir().getCanonicalFile();
             File external = activity.getExternalFilesDir(null);
-            File allowed = (external != null ? external : activity.getFilesDir()).getCanonicalFile();
-            String allowedPrefix = allowed.getPath() + File.separator;
-            if (!target.getPath().startsWith(allowedPrefix))
+            if (external != null) external = external.getCanonicalFile();
+            String targetPath = target.getPath();
+            String internalPrefix = internal.getPath() + File.separator;
+            String externalPrefix = external == null ? "" : external.getPath() + File.separator;
+            if (!targetPath.startsWith(internalPrefix) &&
+                (external == null || !targetPath.startsWith(externalPrefix)))
                 throw new SecurityException("ROM destination is outside app-private storage.");
             File parent = target.getParentFile();
             if (parent == null || (!parent.exists() && !parent.mkdirs()))
