@@ -20,6 +20,18 @@ function Find-UnityAndroidToolchain {
             $editors += Get-ChildItem -LiteralPath $hubRoot -Directory | Sort-Object Name -Descending | Select-Object -ExpandProperty FullName
         }
     }
+    # Standalone UnitySetup64 installs commonly use Program Files\Unity\Editor
+    # instead of the Hub's versioned directory layout.
+    foreach ($standalone in @("C:\Program Files\Unity","D:\Program Files\Unity")) {
+        if (Test-Path -LiteralPath (Join-Path $standalone "Editor\Unity.exe")) {
+            $editors += $standalone
+        }
+        if (Test-Path -LiteralPath $standalone) {
+            $editors += Get-ChildItem -LiteralPath $standalone -Directory -ErrorAction SilentlyContinue |
+                Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "Editor\Unity.exe") } |
+                Select-Object -ExpandProperty FullName
+        }
+    }
     foreach ($editor in $editors | Select-Object -Unique) {
         $android = Join-Path $editor "Editor\Data\PlaybackEngines\AndroidPlayer"
         $sdk = Join-Path $android "SDK"
