@@ -31,6 +31,8 @@ if ($Action -eq 'Build') {
     exit $process.ExitCode
 }
 if ($Action -eq 'AndroidBuild') {
+    Write-Host "Unity Editor: $UnityPath"
+    Write-Host "Unity project: $projectRoot"
     $editorArgs += @('-batchmode', '-quit', '-buildTarget', 'Android', '-executeMethod', 'Idas3AndroidBuild.BuildApk')
     $process = Start-Process -FilePath $UnityPath -ArgumentList $editorArgs -WindowStyle Hidden -PassThru
     $process.WaitForExit()
