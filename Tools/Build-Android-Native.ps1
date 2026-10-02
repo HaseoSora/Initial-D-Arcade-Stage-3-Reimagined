@@ -107,12 +107,41 @@ if (-not $cmake) {
     throw "CMake 3.24 or newer is required. Install current CMake (for example: winget install Kitware.CMake) and rerun Build Android.cmd."
 }
 
+# Android builds use Ninja. Avoid CMake's Windows default (NMake), which
+# requires the Visual Studio nmake tool and is not part of the Android SDK.
+$ninja = $null
+$ninjaCommand = Get-Command ninja -ErrorAction SilentlyContinue
+if ($ninjaCommand) { $ninja = $ninjaCommand.Source }
+if (-not $ninja -and (Test-Path -LiteralPath $cmakeRoot)) {
+    $ninja = Get-ChildItem -LiteralPath $cmakeRoot -Directory |
+        Sort-Object Name -Descending |
+        ForEach-Object { Join-Path $_.FullName "bin\ninja.exe" } |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -First 1
+}
+if (-not $ninja) {
+    throw "Ninja was not found. Unity Android SDK normally includes ninja.exe under SDK\cmake\<version>\bin."
+}
+
 Write-Host "Android SDK: $AndroidSdk"
 Write-Host "Android NDK: $AndroidNdk"
 Write-Host "CMake:      $cmake"
+Write-Host "Ninja:      $ninja"
 
 $build = Join-Path $root ("Native\build-android-" + $Abi)
-& $cmake -S (Join-Path $root "Native") -B $build ("-DCMAKE_TOOLCHAIN_FILE=" + $toolchain) ("-DANDROID_ABI=" + $Abi) ("-DANDROID_PLATFORM=android-" + $Api) "-DCMAKE_BUILD_TYPE=Release"
+
+# If an earlier configure used NMake (or any other generator), discard that
+# cache so CMake can cleanly switch this build directory to Ninja.
+$cache = Join-Path $build "CMakeCache.txt"
+if (Test-Path -LiteralPath $cache) {
+    $generatorLine = Select-String -LiteralPath $cache -Pattern '^CMAKE_GENERATOR:INTERNAL=' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $generatorLine -or $generatorLine.Line -ne 'CMAKE_GENERATOR:INTERNAL=Ninja') {
+        Write-Host "Removing stale non-Ninja CMake cache..."
+        Remove-Item -LiteralPath $build -Recurse -Force
+    }
+}
+
+& $cmake -G Ninja -S (Join-Path $root "Native") -B $build ("-DCMAKE_MAKE_PROGRAM=" + $ninja) ("-DCMAKE_TOOLCHAIN_FILE=" + $toolchain) ("-DANDROID_ABI=" + $Abi) ("-DANDROID_PLATFORM=android-" + $Api) "-DCMAKE_BUILD_TYPE=Release"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $cmake --build $build --target Idas3Unity --parallel 2
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
