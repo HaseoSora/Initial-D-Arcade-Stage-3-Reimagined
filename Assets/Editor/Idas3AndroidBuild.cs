@@ -21,7 +21,6 @@ public static class Idas3AndroidBuild
         Idas3Build.Configure();
         PlayerSettings.applicationIdentifier = "com.haseosora.initiald3.reimagined";
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
-        PlayerSettings.fullScreen = true;
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
         // Direct LAN/Steam transports and packaged/network media use sockets.
@@ -79,7 +78,7 @@ public static class Idas3AndroidBuild
         string temporary = zip + ".tmp";
         if (File.Exists(temporary)) File.Delete(temporary);
         if (File.Exists(zip)) File.Delete(zip);
-        ZipFile.CreateFromDirectory(staging, temporary, CompressionLevel.Optimal, false);
+        ZipFile.CreateFromDirectory(staging, temporary, System.IO.Compression.CompressionLevel.Optimal, false);
         File.Move(temporary, zip);
 
         string digest;
