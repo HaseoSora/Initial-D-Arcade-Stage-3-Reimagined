@@ -30,68 +30,122 @@ internal static class Idas3AndroidStorage
         Preparing = true; Error = null; Progress = 0;
         string expectedHash = null;
         string temporaryZip = Path.Combine(Application.temporaryCachePath, "idas3-runtime-" + Guid.NewGuid().ToString("N") + ".zip");
-        try
-        {
-            Status = "Reading Android runtime package…";
-            using (var request = UnityWebRequest.Get(HashUrl))
-            {
-                yield return request.SendWebRequest();
-                if (request.result != UnityWebRequest.Result.Success)
-                    throw new IOException("Could not read the packaged runtime hash: " + request.error);
-                expectedHash = (request.downloadHandler.text ?? "").Trim().ToLowerInvariant();
-            }
-            if (expectedHash.Length != 64)
-                throw new InvalidDataException("Android runtime package hash is invalid.");
 
-            if (File.Exists(MarkerPath) &&
-                string.Equals(File.ReadAllText(MarkerPath).Trim(), expectedHash, StringComparison.OrdinalIgnoreCase) &&
-                File.Exists(Path.Combine(AssetRoot, "data.manifest.json")) &&
-                Directory.Exists(Path.Combine(AssetRoot, "data", "original_physics")))
+        Status = "Reading Android runtime package…";
+        using (var request = UnityWebRequest.Get(HashUrl))
+        {
+            yield return request.SendWebRequest();
+            if (request.result != UnityWebRequest.Result.Success)
             {
-                Ready = true; Progress = 1; Status = "Android runtime data ready.";
+                Fail("Could not read the packaged runtime hash: " + request.error);
+                CleanupTemporary(temporaryZip);
                 yield break;
             }
+            expectedHash = (request.downloadHandler.text ?? "").Trim().ToLowerInvariant();
+        }
+        if (expectedHash.Length != 64)
+        {
+            Fail("Android runtime package hash is invalid.");
+            CleanupTemporary(temporaryZip);
+            yield break;
+        }
 
+        bool existingReady = false;
+        string localError = null;
+        try
+        {
+            existingReady =
+                File.Exists(MarkerPath) &&
+                string.Equals(File.ReadAllText(MarkerPath).Trim(), expectedHash, StringComparison.OrdinalIgnoreCase) &&
+                File.Exists(Path.Combine(AssetRoot, "data.manifest.json")) &&
+                Directory.Exists(Path.Combine(AssetRoot, "data", "original_physics"));
+        }
+        catch (Exception error) { localError = error.Message; }
+        if (localError != null)
+        {
+            Fail(localError);
+            CleanupTemporary(temporaryZip);
+            yield break;
+        }
+        if (existingReady)
+        {
+            Ready = true; Progress = 1; Status = "Android runtime data ready."; Preparing = false;
+            CleanupTemporary(temporaryZip);
+            yield break;
+        }
+
+        try
+        {
             Directory.CreateDirectory(Application.temporaryCachePath);
-            try { if (File.Exists(temporaryZip)) File.Delete(temporaryZip); } catch { }
-            Status = "Copying packaged game data…";
-            using (var request = new UnityWebRequest(PackageUrl, UnityWebRequest.kHttpVerbGET))
+            if (File.Exists(temporaryZip)) File.Delete(temporaryZip);
+        }
+        catch (Exception error) { localError = error.Message; }
+        if (localError != null)
+        {
+            Fail(localError);
+            CleanupTemporary(temporaryZip);
+            yield break;
+        }
+
+        Status = "Copying packaged game data…";
+        using (var request = new UnityWebRequest(PackageUrl, UnityWebRequest.kHttpVerbGET))
+        {
+            request.downloadHandler = new DownloadHandlerFile(temporaryZip);
+            var operation = request.SendWebRequest();
+            while (!operation.isDone)
             {
-                request.downloadHandler = new DownloadHandlerFile(temporaryZip);
-                var operation = request.SendWebRequest();
-                while (!operation.isDone)
-                {
-                    Progress = Mathf.Clamp01(request.downloadProgress * .65f);
-                    yield return null;
-                }
-                if (request.result != UnityWebRequest.Result.Success)
-                    throw new IOException("Could not copy the Android runtime package: " + request.error);
+                Progress = Mathf.Clamp01(request.downloadProgress * .65f);
+                yield return null;
             }
-
-            Status = "Verifying packaged game data…";
-            var hashTask = Task.Run(() => HashFile(temporaryZip));
-            while (!hashTask.IsCompleted) { Progress = .67f; yield return null; }
-            if (hashTask.IsFaulted) throw hashTask.Exception?.GetBaseException() ?? new IOException("Runtime hash failed.");
-            if (!string.Equals(hashTask.Result, expectedHash, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("Android runtime package failed SHA-256 verification.");
-
-            Status = "Installing game data…";
-            var installTask = Task.Run(() => Install(temporaryZip, expectedHash));
-            while (!installTask.IsCompleted) { Progress = Mathf.Min(.97f, Progress + .0005f); yield return null; }
-            if (installTask.IsFaulted) throw installTask.Exception?.GetBaseException() ?? new IOException("Runtime installation failed.");
-
-            Ready = true; Progress = 1; Status = "Android runtime data ready.";
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Fail("Could not copy the Android runtime package: " + request.error);
+                CleanupTemporary(temporaryZip);
+                yield break;
+            }
         }
-        catch (Exception error)
+
+        Status = "Verifying packaged game data…";
+        var hashTask = Task.Run(() => HashFile(temporaryZip));
+        while (!hashTask.IsCompleted) { Progress = .67f; yield return null; }
+        if (hashTask.IsFaulted)
         {
-            Error = error.Message; Status = "Android game-data setup failed: " + error.Message;
-            Debug.LogError(Status);
+            Fail((hashTask.Exception?.GetBaseException() ?? new IOException("Runtime hash failed.")).Message);
+            CleanupTemporary(temporaryZip);
+            yield break;
         }
-        finally
+        if (!string.Equals(hashTask.Result, expectedHash, StringComparison.OrdinalIgnoreCase))
         {
-            Preparing = false;
-            try { if (File.Exists(temporaryZip)) File.Delete(temporaryZip); } catch { }
+            Fail("Android runtime package failed SHA-256 verification.");
+            CleanupTemporary(temporaryZip);
+            yield break;
         }
+
+        Status = "Installing game data…";
+        var installTask = Task.Run(() => Install(temporaryZip, expectedHash));
+        while (!installTask.IsCompleted) { Progress = Mathf.Min(.97f, Progress + .0005f); yield return null; }
+        if (installTask.IsFaulted)
+        {
+            Fail((installTask.Exception?.GetBaseException() ?? new IOException("Runtime installation failed.")).Message);
+            CleanupTemporary(temporaryZip);
+            yield break;
+        }
+
+        Ready = true; Progress = 1; Status = "Android runtime data ready."; Preparing = false;
+        CleanupTemporary(temporaryZip);
+    }
+
+    private static void Fail(string message)
+    {
+        Error = message;
+        Status = "Android game-data setup failed: " + message;
+        Preparing = false;
+        Debug.LogError(Status);
+    }
+
+    private static void CleanupTemporary(string path)
+    {
+        try { if (File.Exists(path)) File.Delete(path); } catch { }
     }
 
     private static string HashFile(string path)
