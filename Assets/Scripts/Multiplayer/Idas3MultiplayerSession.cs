@@ -228,6 +228,12 @@ namespace Idas3.Multiplayer
             impairment=new Idas3NetworkImpairment(()=>Now);
             LocalCar=Mathf.Clamp(selectedCar,0,34);
             records=new Idas3MultiplayerRecords(saveRoot??Path.Combine(Application.persistentDataPath,"userdata-unity-scene"));
+#if UNITY_ANDROID && !UNITY_EDITOR
+            // Android has no desktop Steam client. Keep startup and online menus
+            // on the portable Direct LAN transport unless/until a native Android
+            // matchmaking backend is added.
+            TransportIndex=1;
+#endif
         }
         public void OpenMenu()
         {
@@ -249,6 +255,9 @@ namespace Idas3.Multiplayer
         }
         public void SelectTransport(int index)
         {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            index=1;
+#endif
             if (nativeRace || DisconnectedFinish || InLobby || Busy || index < 0 || index > 1) return;
             if (TransportIndex == index && Available) return;
             TransportIndex = index;
@@ -352,12 +361,20 @@ namespace Idas3.Multiplayer
         string Compatibility()
         {
             if (compatibility!=null) return compatibility;
-            string path=Path.Combine(Application.dataPath,"Plugins/x86_64/Idas3Unity.dll");
             string complete;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            // IL2CPP assemblies and native plugins live inside the APK and their
+            // Unity paths are not ordinary files. A build GUID gives identical
+            // Android APKs a stable handshake identity without opening base.apk
+            // pseudo-paths through System.IO.
+            complete="idas3-mp9-android-"+Application.identifier+"-"+Application.version+"-"+Application.buildGUID;
+#else
+            string path=Path.Combine(Application.dataPath,"Plugins/x86_64/Idas3Unity.dll");
             using(var hash=SHA256.Create()) {
                 using(var file=File.OpenRead(path)) complete="idas3-mp9-"+Convert.ToBase64String(hash.ComputeHash(file));
                 using(var file=File.OpenRead(typeof(Idas3MultiplayerSession).Assembly.Location)) complete+="-"+Convert.ToBase64String(hash.ComputeHash(file));
             }
+#endif
             for(int course=11;course<Idas3CourseCatalog.Count;++course)
                 complete+="-"+course+"-"+SpecialStageFingerprint(Path.Combine(Application.streamingAssetsPath,Idas3CourseCatalog.Packs[course-9]),Idas3CourseCatalog.Slugs[course-9],course>=12&&course<=14,course==15);
             complete+=ExperimentalAuthority?"-authority1":"-pose1";
