@@ -74,17 +74,37 @@ if (-not $AndroidNdk) {
 $toolchain = Join-Path $AndroidNdk "build\cmake\android.toolchain.cmake"
 if (-not (Test-Path -LiteralPath $toolchain)) { throw "Android NDK toolchain file not found at $toolchain" }
 
+function Test-CMakeVersion([string]$Path) {
+    if (-not $Path -or -not (Test-Path -LiteralPath $Path)) { return $false }
+    try {
+        $line = & $Path --version 2>$null | Select-Object -First 1
+        if ($line -match 'cmake version ([0-9]+)\.([0-9]+)\.([0-9]+)') {
+            $version = [Version]::new([int]$matches[1],[int]$matches[2],[int]$matches[3])
+            return $version -ge [Version]::new(3,24,0)
+        }
+    } catch {}
+    return $false
+}
+
+$cmake = $null
+$cmakeCandidates = @()
 $cmakeCommand = Get-Command cmake -ErrorAction SilentlyContinue
-if ($cmakeCommand) {
-    $cmake = $cmakeCommand.Source
-} else {
-    $cmake = $null
-    $cmakeRoot = Join-Path $AndroidSdk "cmake"
-    if (Test-Path -LiteralPath $cmakeRoot) {
-        $cmakeCandidate = Get-ChildItem -LiteralPath $cmakeRoot -Directory | Sort-Object Name -Descending | ForEach-Object { Join-Path $_.FullName "bin\cmake.exe" } | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-        if ($cmakeCandidate) { $cmake = $cmakeCandidate }
-    }
-    if (-not $cmake) { throw "CMake not found. Install Android SDK CMake or add cmake to PATH." }
+if ($cmakeCommand) { $cmakeCandidates += $cmakeCommand.Source }
+$cmakeCandidates += @(
+    "C:\Program Files\CMake\bin\cmake.exe",
+    "C:\Program Files (x86)\CMake\bin\cmake.exe"
+)
+$cmakeRoot = Join-Path $AndroidSdk "cmake"
+if (Test-Path -LiteralPath $cmakeRoot) {
+    $cmakeCandidates += Get-ChildItem -LiteralPath $cmakeRoot -Directory |
+        Sort-Object Name -Descending |
+        ForEach-Object { Join-Path $_.FullName "bin\cmake.exe" }
+}
+foreach ($candidate in $cmakeCandidates | Select-Object -Unique) {
+    if (Test-CMakeVersion $candidate) { $cmake = $candidate; break }
+}
+if (-not $cmake) {
+    throw "CMake 3.24 or newer is required. Install current CMake (for example: winget install Kitware.CMake) and rerun Build Android.cmd."
 }
 
 Write-Host "Android SDK: $AndroidSdk"
